@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import "../components/Sidebar.css";
 import api from "../services/api";
@@ -23,11 +23,64 @@ function RoomAllocation() {
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
+  const [studentCode, setStudentCode] = useState("");
+  const [counsellingStudent, setCounsellingStudent] = useState(null);
+  const [sharing, setSharing] = useState("1");
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [availabilityVersion, setAvailabilityVersion] = useState(0);
+  const [success, setSuccess] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const lookupVersion = useRef(0);
+
+  useEffect(() => {
+    if (!showForm) return;
+    let cancelled = false;
+    api.get(`/rooms/available/${sharing}`).then(response => {
+      if (!cancelled) setAvailableRooms(response.data);
+    }).catch(err => {
+      if (!cancelled) setError(getApiErrorMessage(err, "Could not load available rooms."));
+    }).finally(() => { if (!cancelled) setRoomsLoading(false); });
+    return () => { cancelled = true; };
+  }, [sharing, showForm, availabilityVersion]);
+
+  const lookupStudent = async () => {
+    const version = ++lookupVersion.current;
+    setLookupLoading(true);
+    setCounsellingStudent(null);
+    setFormData(previous => ({ ...previous, student_id: "" }));
+    setError("");
+    try {
+      const response = await api.get(`/students/by-code/${encodeURIComponent(studentCode.trim().toUpperCase())}`);
+      if (version !== lookupVersion.current) return;
+      const student = response.data;
+      setCounsellingStudent(student);
+      const preferredSharing = student.room_preference?.match(/^([1-4])-Sharing$/)?.[1];
+      if (preferredSharing && preferredSharing !== sharing) {
+        setRoomsLoading(true);
+        setAvailableRooms([]);
+        setFormData(previous => ({ ...previous, room_id: "" }));
+        setSharing(preferredSharing);
+      }
+      if (student.admission_status !== "Admitted") {
+        setError("This student must be admitted before allocation.");
+      } else if (activeAllocationStudentIds.has(student.id)) {
+        setError("This student already has an active room allocation.");
+      } else {
+        setFormData(previous => ({ ...previous, student_id: String(student.id) }));
+      }
+    } catch (err) {
+      if (version === lookupVersion.current) setError(getApiErrorMessage(err, "Student lookup failed."));
+    } finally {
+      if (version === lookupVersion.current) setLookupLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
+  function getApiErrorMessage(err, defaultMessage) {
     if (!err.response) {
       return "Unable to connect to the backend.";
     }
@@ -55,7 +108,7 @@ function RoomAllocation() {
     return defaultMessage;
   };
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       setError("");
@@ -91,6 +144,12 @@ function RoomAllocation() {
   };
 
   const openAddForm = () => {
+    setSuccess("");
+    setRoomsLoading(true);
+    setAvailableRooms([]);
+    setStudentCode("");
+    setCounsellingStudent(null);
+    setSharing("1");
     setFormData({
       ...emptyForm,
       allocation_date: new Date()
@@ -103,6 +162,8 @@ function RoomAllocation() {
   };
 
   const closeForm = () => {
+    lookupVersion.current += 1;
+    setLookupLoading(false);
     setShowForm(false);
     setFormData(emptyForm);
     setError("");
@@ -125,7 +186,7 @@ function RoomAllocation() {
       setError("");
 
       if (!formData.student_id) {
-        setError("Please select a student.");
+        setError("Look up an admitted student by Student ID first.");
         setSaving(false);
         return;
       }
@@ -150,15 +211,19 @@ function RoomAllocation() {
       };
 
       await api.post("/allocations/", payload);
-
-      await fetchData();
+      setSuccess("Room allocated successfully. The student’s room record has been updated.");
 
       closeForm();
+      await fetchData();
     } catch (err) {
       console.error(
         "Failed to create room allocation:",
         err
       );
+      setRoomsLoading(true);
+      setAvailableRooms([]);
+      setFormData(previous => ({ ...previous, room_id: "" }));
+      setAvailabilityVersion(previous => previous + 1);
 
       setError(
         getApiErrorMessage(
@@ -223,18 +288,6 @@ function RoomAllocation() {
       )
   );
 
-  const availableStudents = students.filter(
-    (student) =>
-      !activeAllocationStudentIds.has(student.id)
-  );
-
-  const availableRooms = rooms.filter(
-    (room) =>
-      room.status === "Available" &&
-      Number(room.occupied) <
-        Number(room.capacity)
-  );
-
   const getStudentName = (studentId) => {
     const student = students.find(
       (item) => item.id === studentId
@@ -286,6 +339,8 @@ function RoomAllocation() {
           </div>
         </header>
 
+        {success && <p role="status">{success}</p>}
+
         {error && (
           <div className="rooms-error">
             <p>{error}</p>
@@ -306,6 +361,7 @@ function RoomAllocation() {
             <button
               type="button"
               className="primary-button"
+              disabled={saving}
               onClick={
                 showForm
                   ? closeForm
@@ -330,57 +386,53 @@ function RoomAllocation() {
                   </h3>
 
                   <p>
-                    Select a student and an available
-                    hostel room.
+                    Retrieve the admission record using Student ID, compare rooms, and confirm an allocation.
                   </p>
                 </div>
               </div>
 
               <div className="room-form-grid">
                 <div className="form-group">
-                  <label htmlFor="student_id">
-                    Student
-                  </label>
-
-                  <select
-                    id="student_id"
-                    name="student_id"
-                    value={formData.student_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">
-                      Select student
-                    </option>
-
-                    {availableStudents.map(
-                      (student) => (
-                        <option
-                          key={student.id}
-                          value={student.id}
-                        >
-                          {student.name} — ID{" "}
-                          {student.id}
-                        </option>
-                      )
-                    )}
-                  </select>
-
-                  {availableStudents.length ===
-                    0 && (
-                    <small className="form-help">
-                      No students are currently
-                      available for allocation.
-                    </small>
-                  )}
+                  <label htmlFor="student_code">HostelHub Student ID</label>
+                  <input id="student_code" value={studentCode} placeholder="HMS202600001" disabled={saving}
+                    onChange={event => {
+                      lookupVersion.current += 1;
+                      setLookupLoading(false);
+                      setStudentCode(event.target.value);
+                      setCounsellingStudent(null);
+                      setFormData(previous => ({ ...previous, student_id: "" }));
+                    }} />
+                  <button type="button" className="secondary-button" onClick={lookupStudent}
+                    disabled={!studentCode.trim() || lookupLoading || saving}>
+                    {lookupLoading ? "Looking up…" : "Find admission record"}
+                  </button>
                 </div>
-
+                <div className="form-group">
+                  <label htmlFor="sharing">Sharing type</label>
+                  <select id="sharing" value={sharing} disabled={saving} onChange={event => {
+                    setRoomsLoading(true);
+                    setAvailableRooms([]);
+                    setFormData(previous => ({ ...previous, room_id: "" }));
+                    setSharing(event.target.value);
+                  }}>
+                    {[1, 2, 3, 4].map(value => <option key={value} value={value}>{value} sharing</option>)}
+                  </select>
+                </div>
+                {counsellingStudent && <div className="form-group" aria-live="polite">
+                  <strong>{counsellingStudent.name} · {counsellingStudent.student_code}</strong>
+                  <p>{counsellingStudent.course} · Year {counsellingStudent.year}</p>
+                  <p>{counsellingStudent.email} · {counsellingStudent.phone}</p>
+                  <p>Admission: {counsellingStudent.admission_status} · {counsellingStudent.admission_date || "Date unspecified"}</p>
+                  <p>Room preference: {counsellingStudent.room_preference || "Not specified"}</p>
+                  <p>Parent: {counsellingStudent.parent_name || "Not specified"} · {counsellingStudent.guardian_phone || "No phone recorded"}</p>
+                </div>}
                 <div className="form-group">
                   <label htmlFor="room_id">
                     Available Room
                   </label>
 
                   <select
+                    disabled={roomsLoading || saving}
                     id="room_id"
                     name="room_id"
                     value={formData.room_id}
@@ -409,8 +461,7 @@ function RoomAllocation() {
                   {availableRooms.length ===
                     0 && (
                     <small className="form-help">
-                      No rooms currently have
-                      available capacity.
+                      {roomsLoading ? "Loading available rooms…" : "No rooms available for this sharing type."}
                     </small>
                   )}
                 </div>
@@ -433,6 +484,23 @@ function RoomAllocation() {
                 </div>
               </div>
 
+              <div className="rooms-table-wrapper">
+                <table className="rooms-table">
+                  <caption>Available {sharing}-sharing rooms — compare before allocating</caption>
+                  <thead><tr><th>Room</th><th>Block / floor</th><th>Bathroom</th><th>Type</th><th>Monthly fee / student</th><th>Specifications</th><th>Free beds</th><th>Choice</th></tr></thead>
+                  <tbody>{availableRooms.map(room => <tr key={room.id}>
+                    <td>{room.room_number}</td><td>{room.block || "—"} / {room.floor}</td>
+                    <td>{room.bathroom_type || "Unspecified"}</td><td>{room.room_type || "Unspecified"}</td>
+                    <td>{room.monthly_fee == null ? "Unspecified" : `₹${room.monthly_fee}`}</td>
+                    <td>{room.specifications || "—"}</td><td>{room.capacity - room.occupied}</td>
+                    <td><button type="button" className="secondary-button" disabled={saving}
+                      aria-pressed={String(room.id) === formData.room_id}
+                      onClick={() => setFormData(previous => ({ ...previous, room_id: String(room.id) }))}>
+                      {String(room.id) === formData.room_id ? "Selected" : `Select ${room.room_number}`}
+                    </button></td>
+                  </tr>)}</tbody>
+                </table>
+              </div>
               <div className="room-form-actions">
                 <button
                   type="button"
@@ -448,8 +516,7 @@ function RoomAllocation() {
                   className="primary-button"
                   disabled={
                     saving ||
-                    availableStudents.length ===
-                      0 ||
+                    !formData.student_id || roomsLoading || lookupLoading || !formData.room_id ||
                     availableRooms.length ===
                       0
                   }

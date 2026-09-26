@@ -1,0 +1,266 @@
+.meal-message {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.meal-message.success {
+  background: #ecfdf5;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.meal-message.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.meal-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.meal-section-heading h2 {
+  margin: 0 0 6px;
+}
+
+.meal-section-heading p {
+  margin: 0;
+  color: #64748b;
+}
+
+.meal-card-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.meal-card {
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.meal-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 22px
+    rgba(15, 23, 42, 0.08);
+}
+
+.meal-card.confirmed {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.meal-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.meal-card.confirmed
+.meal-card-icon {
+  background: #dcfce7;
+}
+
+.meal-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.meal-card p {
+  margin: 0 0 18px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.meal-confirm-button {
+  width: 100%;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 14px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.meal-confirm-button:hover {
+  background: #1d4ed8;
+}
+
+.meal-confirm-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.meal-confirmed-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.meal-card small {
+  display: block;
+  color: #64748b;
+}
+
+.meal-history-section {
+  margin-top: 22px;
+}
+
+.meal-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.meal-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.meal-table th {
+  text-align: left;
+  padding: 13px 14px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.meal-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.meal-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.meal-filter-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.meal-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 220px;
+}
+
+.meal-filter label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.meal-filter input,
+.meal-filter select {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+}
+
+.meal-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.meal-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.meal-summary-card > span {
+  font-size: 24px;
+}
+
+.meal-summary-card strong {
+  display: block;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.meal-summary-card p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.meal-loading,
+.meal-empty {
+  padding: 30px 16px;
+  text-align: center;
+  color: #64748b;
+}
+
+
+@media (max-width: 1100px) {
+  .meal-card-grid,
+  .meal-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 650px) {
+  .meal-card-grid,
+  .meal-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .meal-filter {
+    width: 100%;
+  }
+}

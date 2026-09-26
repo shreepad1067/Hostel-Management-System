@@ -1,0 +1,296 @@
+.sos-message {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.sos-message.error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.sos-message.success {
+  color: #166534;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+}
+
+.sos-pending-counter {
+  min-width: 130px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.sos-pending-counter span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sos-pending-counter strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 26px;
+}
+
+.sos-pending-counter.active {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.sos-emergency-card {
+  padding: 24px;
+  margin-bottom: 22px;
+  border-radius: 16px;
+  border: 2px solid #ef4444;
+  background: #fff7f7;
+}
+
+.sos-emergency-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 22px;
+}
+
+.sos-warning-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #dc2626;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.sos-emergency-heading h2 {
+  margin: 0 0 5px;
+  color: #991b1b;
+}
+
+.sos-emergency-heading p {
+  margin: 0;
+  color: #7f1d1d;
+}
+
+.sos-form {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.sos-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sos-field.full {
+  grid-column: 1 / -1;
+}
+
+.sos-field label {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sos-field input,
+.sos-field select,
+.sos-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font: inherit;
+}
+
+.sos-field textarea {
+  resize: vertical;
+}
+
+.sos-submit-area {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.sos-submit-area p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.sos-button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  color: #ffffff;
+  background: #dc2626;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.sos-button:hover {
+  background: #b91c1c;
+}
+
+.sos-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sos-record-section {
+  margin-top: 20px;
+}
+
+.sos-section-header {
+  margin-bottom: 20px;
+}
+
+.sos-section-header h2 {
+  margin: 0 0 6px;
+}
+
+.sos-section-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.sos-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sos-table {
+  width: 100%;
+  min-width: 950px;
+  border-collapse: collapse;
+}
+
+.sos-table th {
+  padding: 12px 14px;
+  text-align: left;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.sos-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.sos-table td small {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+}
+
+.sos-pending-row {
+  background: #fff7f7;
+}
+
+.sos-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sos-status.pending {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.sos-status.genuine {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.sos-status.false {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.sos-parent-sent {
+  color: #166534;
+  font-weight: 700;
+}
+
+.sos-parent-pending {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.sos-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sos-actions button {
+  border: none;
+  border-radius: 7px;
+  padding: 7px 11px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.sos-actions .genuine {
+  color: #ffffff;
+  background: #16a34a;
+}
+
+.sos-actions .false {
+  color: #ffffff;
+  background: #64748b;
+}
+
+.sos-empty {
+  padding: 30px;
+  color: #64748b;
+  text-align: center;
+}
+
+
+@media (max-width: 700px) {
+  .sos-form {
+    grid-template-columns: 1fr;
+  }
+
+  .sos-field.full,
+  .sos-submit-area {
+    grid-column: auto;
+  }
+
+  .sos-submit-area {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sos-button {
+    width: 100%;
+  }
+}

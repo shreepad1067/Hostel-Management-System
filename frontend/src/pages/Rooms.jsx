@@ -6,6 +6,7 @@ import api from "../services/api";
 function Rooms() {
   const emptyForm = {
     room_number: "",
+    block: "", bathroom_type: "", room_type: "", monthly_fee: "", specifications: "",
     capacity: "",
     occupied: "0",
     floor: "",
@@ -25,7 +26,7 @@ function Rooms() {
     fetchRooms();
   }, []);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
+  function getApiErrorMessage(err, defaultMessage) {
     if (!err.response) {
       return "Unable to connect to the backend.";
     }
@@ -51,7 +52,7 @@ function Rooms() {
     return defaultMessage;
   };
 
-  const fetchRooms = async () => {
+  async function fetchRooms() {
     try {
       setLoading(true);
       setError("");
@@ -94,10 +95,13 @@ function Rooms() {
 
     setFormData({
       room_number: room.room_number || "",
+      block: room.block ?? "", bathroom_type: room.bathroom_type ?? "",
+      room_type: room.room_type ?? "", monthly_fee: room.monthly_fee ?? "",
+      specifications: room.specifications ?? "",
       capacity: room.capacity ?? "",
       occupied: room.occupied ?? "0",
       floor: room.floor ?? "",
-      status: room.status || "Available",
+      status: room.status === "Maintenance" ? "Maintenance" : "Available",
     });
 
     setError("");
@@ -122,8 +126,8 @@ function Rooms() {
       const occupied = Number(formData.occupied);
       const floor = Number(formData.floor);
 
-      if (capacity < 1) {
-        setError("Room capacity must be at least 1.");
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 4) {
+        setError("Choose 1, 2, 3 or 4 sharing.");
         setSaving(false);
         return;
       }
@@ -159,6 +163,11 @@ function Rooms() {
 
       const payload = {
         room_number: formData.room_number.trim(),
+        block: formData.block.trim() || null,
+        bathroom_type: formData.bathroom_type.trim() || null,
+        room_type: formData.room_type.trim() || null,
+        monthly_fee: formData.monthly_fee === "" ? null : formData.monthly_fee,
+        specifications: formData.specifications.trim() || null,
         capacity,
         occupied,
         floor,
@@ -174,8 +183,8 @@ function Rooms() {
         await api.post("/rooms/", payload);
       }
 
-      await fetchRooms();
       closeForm();
+      await fetchRooms();
     } catch (err) {
       console.error("Failed to save room:", err);
 
@@ -276,6 +285,7 @@ function Rooms() {
             <button
               type="button"
               className="primary-button"
+              disabled={saving}
               onClick={
                 showForm ? closeForm : openAddForm
               }
@@ -304,6 +314,19 @@ function Rooms() {
               </div>
 
               <div className="room-form-grid">
+                {[
+                  ["block", "Block", 50], ["bathroom_type", "Bathroom (attached / shared)", 50],
+                  ["room_type", "Room type (AC / non-AC)", 50], ["specifications", "Specifications and amenities", 500],
+                ].map(([name, label, maxLength]) => (
+                  <div className="form-group" key={name}>
+                    <label htmlFor={name}>{label}</label>
+                    <input id={name} name={name} maxLength={maxLength} value={formData[name]} onChange={handleChange} />
+                  </div>
+                ))}
+                <div className="form-group">
+                  <label htmlFor="monthly_fee">Monthly fee per student (₹)</label>
+                  <input id="monthly_fee" name="monthly_fee" type="number" min="0" max="99999999.99" step="0.01" value={formData.monthly_fee} onChange={handleChange} />
+                </div>
                 <div className="form-group">
                   <label htmlFor="room_number">
                     Room Number
@@ -330,6 +353,7 @@ function Rooms() {
                     name="capacity"
                     type="number"
                     min="1"
+                    max="4"
                     placeholder="Example: 4"
                     value={formData.capacity}
                     onChange={handleChange}
@@ -343,6 +367,7 @@ function Rooms() {
                   </label>
 
                   <input
+                    readOnly
                     id="occupied"
                     name="occupied"
                     type="number"
@@ -353,8 +378,7 @@ function Rooms() {
                   />
 
                   <small className="form-help">
-                    Status becomes Occupied when the room
-                    reaches full capacity.
+                    Occupancy is updated through room allocation.
                   </small>
                 </div>
 
@@ -466,6 +490,7 @@ function Rooms() {
                     <tr>
                       <th>ID</th>
                       <th>Room Number</th>
+                      <th>Specifications</th>
                       <th>Floor</th>
                       <th>Capacity</th>
                       <th>Occupied</th>
@@ -483,10 +508,7 @@ function Rooms() {
                       const capacity =
                         Number(room.capacity) || 0;
 
-                      const available = Math.max(
-                        capacity - occupied,
-                        0
-                      );
+                      const available = room.status === "Available" ? Math.max(capacity - occupied, 0) : 0;
 
                       return (
                         <tr key={room.id}>
@@ -496,6 +518,12 @@ function Rooms() {
                             {room.room_number}
                           </td>
 
+                          <td>
+                            <div>{room.block || "No block"} · {room.room_type || "Type unspecified"}</div>
+                            <div>{room.bathroom_type || "Bathroom unspecified"}</div>
+                            <div>{room.monthly_fee == null ? "Fee unspecified" : `₹${room.monthly_fee} / student / month`}</div>
+                            <div>{room.specifications || "No additional specifications"}</div>
+                          </td>
                           <td>{room.floor}</td>
 
                           <td>{capacity}</td>

@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -29,7 +31,7 @@ def create_allocation(
     # 1. Check whether student exists
     student = db.query(Student).filter(
         Student.id == allocation.student_id
-    ).first()
+    ).with_for_update().first()
 
     if not student:
         raise HTTPException(
@@ -37,10 +39,14 @@ def create_allocation(
             detail="Student not found"
         )
 
+    if student.admission_status != "Admitted":
+        raise HTTPException(status_code=400, detail="Student must be admitted before room allocation")
+
+    # Lock student first, then room: concurrent bookings serialize on both resources.
     # 2. Check whether room exists
     room = db.query(Room).filter(
         Room.id == allocation.room_id
-    ).first()
+    ).with_for_update().first()
 
     if not room:
         raise HTTPException(
@@ -52,13 +58,16 @@ def create_allocation(
     existing_allocation = db.query(RoomAllocation).filter(
         RoomAllocation.student_id == allocation.student_id,
         RoomAllocation.status == "Active"
-    ).first()
+    ).with_for_update().first()
 
     if existing_allocation:
         raise HTTPException(
             status_code=400,
             detail="Student already has an active room allocation"
         )
+
+    if room.status != "Available":
+        raise HTTPException(status_code=400, detail="Room is not available for allocation")
 
     # 4. Check room capacity
     if room.occupied >= room.capacity:
@@ -71,8 +80,8 @@ def create_allocation(
     new_allocation = RoomAllocation(
         student_id=allocation.student_id,
         room_id=allocation.room_id,
-        allocation_date=allocation.allocation_date,
-        status=allocation.status
+        allocation_date=allocation.allocation_date or date.today(),
+        status="Active"
     )
 
     db.add(new_allocation)
@@ -184,42 +193,24 @@ def delete_allocation(
         require_roles("Admin", "Warden")
     )
 ):
-    # 1. Find allocation
+    # Read identifiers, then use the same lock order as allocation creation.
+    reference = db.query(RoomAllocation).filter(RoomAllocation.id == allocation_id).first()
+    if not reference:
+        raise HTTPException(status_code=404, detail="Allocation not found")
+    student = db.query(Student).filter(Student.id == reference.student_id).with_for_update().first()
+    room = db.query(Room).filter(Room.id == reference.room_id).with_for_update().first()
     allocation = db.query(RoomAllocation).filter(
         RoomAllocation.id == allocation_id
-    ).first()
-
-    if not allocation:
-        raise HTTPException(
-            status_code=404,
-            detail="Allocation not found"
-        )
-
-    # 2. Prevent repeated deallocation
-    if allocation.status == "Inactive":
-        raise HTTPException(
-            status_code=400,
-            detail="Allocation is already inactive"
-        )
-
-    # 3. Find the room
-    room = db.query(Room).filter(
-        Room.id == allocation.room_id
-    ).first()
-
-    # 4. Find the student
-    student = db.query(Student).filter(
-        Student.id == allocation.student_id
-    ).first()
+    ).populate_existing().with_for_update().first()
+    if allocation.status != "Active":
+        raise HTTPException(status_code=400, detail="Allocation is already inactive")
 
     # 5. Decrease room occupancy
     if room and room.occupied > 0:
         room.occupied -= 1
 
-        if room.occupied >= room.capacity:
-            room.status = "Occupied"
-        else:
-            room.status = "Available"
+        if room.status != "Maintenance":
+            room.status = "Occupied" if room.occupied >= room.capacity else "Available"
 
     # 6. Clear student's room number
     if student:

@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -7,7 +8,7 @@ class AllocationCreate(BaseModel):
     student_id: int
     room_id: int
     allocation_date: date | None = None
-    status: str = "Active"
+    status: Literal["Active"] = "Active"
 
 
 class AllocationResponse(BaseModel):

@@ -4,6 +4,25 @@ import "../components/Sidebar.css";
 import api from "../services/api";
 
 function Students() {
+  const getUserRole = () => {
+    try {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        return null;
+      }
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      return payload.role || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const role = getUserRole();
+  const isAdmin = role === "Admin";
+
   const emptyForm = {
     name: "",
     email: "",
@@ -11,7 +30,14 @@ function Students() {
     course: "",
     year: "",
     room_number: "",
-    user_id: "",
+    guardian_phone: "",
+    parent_name: "",
+    parent_email: "",
+    emergency_contact: "",
+    address: "",
+    room_preference: "",
+    admission_status: "Pending",
+    admission_date: "",
   };
 
   const [students, setStudents] = useState([]);
@@ -19,15 +45,22 @@ function Students() {
   const [error, setError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [formData, setFormData] = useState(emptyForm);
+  const [editingStudent, setEditingStudent] =
+    useState(null);
+
+  const [formData, setFormData] =
+    useState(emptyForm);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
+  const getApiErrorMessage = (
+    err,
+    defaultMessage
+  ) => {
     if (!err.response) {
       return "Unable to connect to the backend.";
     }
@@ -41,7 +74,9 @@ function Students() {
             ? item.loc[item.loc.length - 1]
             : "field";
 
-          return `${location}: ${item.msg || "Invalid input"}`;
+          return `${location}: ${
+            item.msg || "Invalid input"
+          }`;
         })
         .join(", ");
     }
@@ -58,11 +93,16 @@ function Students() {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/students/");
+      const response = await api.get(
+        "/students/"
+      );
 
       setStudents(response.data);
     } catch (err) {
-      console.error("Failed to load students:", err);
+      console.error(
+        "Failed to load students:",
+        err
+      );
 
       setError(
         getApiErrorMessage(
@@ -101,7 +141,22 @@ function Students() {
       course: student.course || "",
       year: student.year || "",
       room_number: student.room_number || "",
-      user_id: student.user_id || "",
+      guardian_phone:
+        student.guardian_phone || "",
+      parent_name:
+        student.parent_name || "",
+      parent_email:
+        student.parent_email || "",
+      emergency_contact:
+        student.emergency_contact || "",
+      address:
+        student.address || "",
+      room_preference:
+        student.room_preference || "",
+      admission_status:
+        student.admission_status || "Pending",
+      admission_date:
+        student.admission_date || "",
     });
 
     setError("");
@@ -128,9 +183,41 @@ function Students() {
         phone: formData.phone.trim(),
         course: formData.course.trim(),
         year: Number(formData.year),
-        room_number: formData.room_number.trim() || null,
-        user_id: formData.user_id
-          ? Number(formData.user_id)
+
+        room_number:
+          formData.room_number.trim() ||
+          null,
+
+        guardian_phone:
+          formData.guardian_phone.trim() ||
+          null,
+
+        parent_name:
+          formData.parent_name.trim() ||
+          null,
+
+        parent_email:
+          formData.parent_email.trim() ||
+          null,
+
+        emergency_contact:
+          formData.emergency_contact.trim() ||
+          null,
+
+        address:
+          formData.address.trim() || null,
+
+        room_preference:
+          formData.room_preference || null,
+
+        admission_status:
+          formData.admission_status,
+
+        admission_date:
+          formData.admission_date || null,
+
+        user_id: editingStudent?.user_id
+          ? Number(editingStudent.user_id)
           : null,
       };
 
@@ -140,13 +227,19 @@ function Students() {
           payload
         );
       } else {
-        await api.post("/students/", payload);
+        await api.post(
+          "/students/",
+          payload
+        );
       }
 
       await fetchStudents();
       closeForm();
     } catch (err) {
-      console.error("Failed to save student:", err);
+      console.error(
+        "Failed to save student:",
+        err
+      );
 
       setError(
         getApiErrorMessage(
@@ -171,11 +264,16 @@ function Students() {
     try {
       setError("");
 
-      await api.delete(`/students/${student.id}`);
+      await api.delete(
+        `/students/${student.id}`
+      );
 
       await fetchStudents();
     } catch (err) {
-      console.error("Failed to delete student:", err);
+      console.error(
+        "Failed to delete student:",
+        err
+      );
 
       setError(
         getApiErrorMessage(
@@ -186,6 +284,16 @@ function Students() {
     }
   };
 
+  const formatDate = (dateValue) => {
+    if (!dateValue) {
+      return "-";
+    }
+
+    return new Date(
+      `${dateValue}T00:00:00`
+    ).toLocaleDateString("en-GB");
+  };
+
   return (
     <div className="dashboard-layout">
       <Sidebar />
@@ -194,19 +302,29 @@ function Students() {
         <header className="dashboard-header">
           <div>
             <span className="dashboard-label">
-              MANAGEMENT
+              {isAdmin
+                ? "ADMINISTRATION"
+                : "WARDEN PORTAL"}
             </span>
 
-            <h1>Students</h1>
+            <h1>
+              {isAdmin
+                ? "Student Admissions"
+                : "Students"}
+            </h1>
 
             <p>
-              Manage student records and user account links.
+              {isAdmin
+                ? "Manage hostel admissions, student details, parent contacts, and account links."
+                : "View and manage admitted hostel students."}
             </p>
           </div>
 
           <div className="dashboard-date">
             <span>TOTAL STUDENTS</span>
-            <strong>{students.length}</strong>
+            <strong>
+              {students.length}
+            </strong>
           </div>
         </header>
 
@@ -219,22 +337,31 @@ function Students() {
         <section className="overview-card students-management-card">
           <div className="overview-header">
             <div>
-              <h2>Student Records</h2>
+              <h2>
+                Student Records
+              </h2>
 
               <p>
-                Add, update, and manage hostel student records.
+                Admission and hostel student
+                information.
               </p>
             </div>
 
-            <button
-              type="button"
-              className="primary-button"
-              onClick={
-                showForm ? closeForm : openAddForm
-              }
-            >
-              {showForm ? "Close Form" : "+ Add Student"}
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className="primary-button"
+                onClick={
+                  showForm
+                    ? closeForm
+                    : openAddForm
+                }
+              >
+                {showForm
+                  ? "Close Form"
+                  : "+ New Admission"}
+              </button>
+            )}
           </div>
 
           {showForm && (
@@ -246,17 +373,41 @@ function Students() {
                 <div>
                   <h3>
                     {editingStudent
-                      ? "Edit Student"
-                      : "Add New Student"}
+                      ? "Edit Student Details"
+                      : "New Student Admission"}
                   </h3>
 
                   <p>
-                    Enter the student's details below.
+                    {editingStudent
+                      ? "Update the student's admission and contact information."
+                      : "Enter the student's admission details. A HostelHub Student ID will be generated automatically."}
                   </p>
                 </div>
               </div>
 
               <div className="student-form-grid">
+                {editingStudent && (
+                  <div className="form-group">
+                    <label>
+                      HostelHub Student ID
+                    </label>
+
+                    <input
+                      type="text"
+                      value={
+                        editingStudent.student_code ||
+                        ""
+                      }
+                      disabled
+                    />
+
+                    <small className="form-help">
+                      Student ID cannot be
+                      changed.
+                    </small>
+                  </div>
+                )}
+
                 <div className="form-group">
                   <label htmlFor="name">
                     Student Name
@@ -266,7 +417,7 @@ function Students() {
                     id="name"
                     name="name"
                     type="text"
-                    placeholder="Enter student name"
+                    placeholder="Enter full name"
                     value={formData.name}
                     onChange={handleChange}
                     required
@@ -275,7 +426,7 @@ function Students() {
 
                 <div className="form-group">
                   <label htmlFor="email">
-                    Email
+                    Student Email
                   </label>
 
                   <input
@@ -291,14 +442,14 @@ function Students() {
 
                 <div className="form-group">
                   <label htmlFor="phone">
-                    Phone Number
+                    Student Phone
                   </label>
 
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="Enter phone number"
+                    placeholder="Enter mobile number"
                     value={formData.phone}
                     onChange={handleChange}
                     required
@@ -323,7 +474,7 @@ function Students() {
 
                 <div className="form-group">
                   <label htmlFor="year">
-                    Year
+                    Academic Year
                   </label>
 
                   <input
@@ -340,39 +491,197 @@ function Students() {
                 </div>
 
                 <div className="form-group">
+                  <label htmlFor="admission_date">
+                    Admission Date
+                  </label>
+
+                  <input
+                    id="admission_date"
+                    name="admission_date"
+                    type="date"
+                    value={
+                      formData.admission_date
+                    }
+                    onChange={handleChange}
+                  />
+
+                  <small className="form-help">
+                    If empty during new
+                    admission, today's date
+                    will be used.
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="admission_status">
+                    Admission Status
+                  </label>
+
+                  <select
+                    id="admission_status"
+                    name="admission_status"
+                    value={
+                      formData.admission_status
+                    }
+                    onChange={handleChange}
+                  >
+                    <option value="Pending">
+                      Pending
+                    </option>
+
+                    <option value="Approved">
+                      Approved
+                    </option>
+
+                    <option value="Admitted">
+                      Admitted
+                    </option>
+
+                    <option value="Rejected">
+                      Rejected
+                    </option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="room_preference">
+                    Room Preference
+                  </label>
+
+                  <select
+                    id="room_preference"
+                    name="room_preference"
+                    value={
+                      formData.room_preference
+                    }
+                    onChange={handleChange}
+                  >
+                    <option value="">
+                      Select preference
+                    </option>
+
+                    <option value="1-Sharing">
+                      1-Sharing
+                    </option>
+
+                    <option value="2-Sharing">
+                      2-Sharing
+                    </option>
+
+                    <option value="3-Sharing">
+                      3-Sharing
+                    </option>
+
+                    <option value="4-Sharing">
+                      4-Sharing
+                    </option>
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="room_number">
-                    Room Number
+                    Allocated Room
                   </label>
 
                   <input
                     id="room_number"
                     name="room_number"
                     type="text"
-                    placeholder="Example: A-105"
-                    value={formData.room_number}
+                    placeholder="Leave empty before allocation"
+                    value={
+                      formData.room_number
+                    }
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="parent_name">
+                    Parent / Guardian Name
+                  </label>
+
+                  <input
+                    id="parent_name"
+                    name="parent_name"
+                    type="text"
+                    placeholder="Enter parent name"
+                    value={
+                      formData.parent_name
+                    }
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="guardian_phone">
+                    Parent / Guardian Phone
+                  </label>
+
+                  <input
+                    id="guardian_phone"
+                    name="guardian_phone"
+                    type="tel"
+                    placeholder="Enter parent mobile number"
+                    value={
+                      formData.guardian_phone
+                    }
+                    onChange={handleChange}
+                  />
+
+                  <small className="form-help">
+                    This number will later be
+                    used for meal and emergency
+                    notifications.
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="parent_email">
+                    Parent Email
+                  </label>
+
+                  <input
+                    id="parent_email"
+                    name="parent_email"
+                    type="email"
+                    placeholder="Enter parent email"
+                    value={
+                      formData.parent_email
+                    }
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="emergency_contact">
+                    Emergency Contact
+                  </label>
+
+                  <input
+                    id="emergency_contact"
+                    name="emergency_contact"
+                    type="tel"
+                    placeholder="Emergency contact number"
+                    value={
+                      formData.emergency_contact
+                    }
                     onChange={handleChange}
                   />
                 </div>
 
                 <div className="form-group full-width">
-                  <label htmlFor="user_id">
-                    Student User ID
+                  <label htmlFor="address">
+                    Permanent Address
                   </label>
 
-                  <input
-                    id="user_id"
-                    name="user_id"
-                    type="number"
-                    min="1"
-                    placeholder="Optional — link a Student user"
-                    value={formData.user_id}
+                  <textarea
+                    id="address"
+                    name="address"
+                    rows="3"
+                    placeholder="Enter student's permanent address"
+                    value={formData.address}
                     onChange={handleChange}
                   />
-
-                  <small className="form-help">
-                    Leave empty if this student does not
-                    have a login account yet.
-                  </small>
                 </div>
               </div>
 
@@ -395,7 +704,7 @@ function Students() {
                     ? "Saving..."
                     : editingStudent
                     ? "Update Student"
-                    : "Add Student"}
+                    : "Create Admission"}
                 </button>
               </div>
             </form>
@@ -409,10 +718,13 @@ function Students() {
                 ♙
               </div>
 
-              <h3>Loading Students...</h3>
+              <h3>
+                Loading Students...
+              </h3>
 
               <p>
-                Please wait while student records are loaded.
+                Please wait while student
+                records are loaded.
               </p>
             </div>
           </section>
@@ -423,10 +735,13 @@ function Students() {
                 ♙
               </div>
 
-              <h3>No Students Found</h3>
+              <h3>
+                No Students Found
+              </h3>
 
               <p>
-                There are currently no student records.
+                There are currently no
+                student records.
               </p>
             </div>
           </section>
@@ -437,85 +752,144 @@ function Students() {
                 <table className="students-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>Student ID</th>
                       <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
+                      <th>Student Contact</th>
                       <th>Course</th>
                       <th>Year</th>
-                      <th>Room</th>
-                      <th>User ID</th>
-                      <th>Status</th>
+                      <th>Parent</th>
+                      <th>Parent Contact</th>
+                      <th>Room Preference</th>
+                      <th>Allocated Room</th>
+                      <th>Admission</th>
+                      <th>Account</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {students.map((student) => (
-                      <tr key={student.id}>
-                        <td>{student.id}</td>
+                    {students.map(
+                      (student) => (
+                        <tr key={student.id}>
+                          <td>
+                            <strong>
+                              {student.student_code ||
+                                "-"}
+                            </strong>
+                          </td>
 
-                        <td className="student-name">
-                          {student.name}
-                        </td>
+                          <td className="student-name">
+                            {student.name}
+                          </td>
 
-                        <td>{student.email}</td>
+                          <td>
+                            <div>
+                              {student.email}
+                            </div>
 
-                        <td>{student.phone}</td>
+                            <div>
+                              {student.phone}
+                            </div>
+                          </td>
 
-                        <td>{student.course}</td>
+                          <td>
+                            {student.course}
+                          </td>
 
-                        <td>{student.year}</td>
+                          <td>
+                            {student.year}
+                          </td>
 
-                        <td>
-                          {student.room_number ||
-                            "Not allocated"}
-                        </td>
+                          <td>
+                            {student.parent_name ||
+                              "-"}
+                          </td>
 
-                        <td>
-                          {student.user_id ||
-                            "Not linked"}
-                        </td>
+                          <td>
+                            <div>
+                              {student.guardian_phone ||
+                                "-"}
+                            </div>
 
-                        <td>
-                          <span
-                            className={
-                              student.user_id
-                                ? "student-status linked"
-                                : "student-status not-linked"
-                            }
-                          >
-                            {student.user_id
-                              ? "Linked"
-                              : "Not linked"}
-                          </span>
-                        </td>
+                            {student.parent_email && (
+                              <div>
+                                {
+                                  student.parent_email
+                                }
+                              </div>
+                            )}
+                          </td>
 
-                        <td>
-                          <div className="student-actions">
-                            <button
-                              type="button"
-                              className="student-action-button edit"
-                              onClick={() =>
-                                openEditForm(student)
+                          <td>
+                            {student.room_preference ||
+                              "Not selected"}
+                          </td>
+
+                          <td>
+                            {student.room_number ||
+                              "Not allocated"}
+                          </td>
+
+                          <td>
+                            <div>
+                              <strong>
+                                {student.admission_status}
+                              </strong>
+                            </div>
+
+                            <small>
+                              {formatDate(
+                                student.admission_date
+                              )}
+                            </small>
+                          </td>
+
+                          <td>
+                            <span
+                              className={
+                                student.user_id
+                                  ? "student-status linked"
+                                  : "student-status not-linked"
                               }
                             >
-                              Edit
-                            </button>
+                              {student.user_id
+                                ? "Account Linked"
+                                : "No Account"}
+                            </span>
+                          </td>
 
-                            <button
-                              type="button"
-                              className="student-action-button delete"
-                              onClick={() =>
-                                handleDelete(student)
-                              }
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          <td>
+                            <div className="student-actions">
+                              <button
+                                type="button"
+                                className="student-action-button edit"
+                                onClick={() =>
+                                  openEditForm(
+                                    student
+                                  )
+                                }
+                              >
+                                Edit
+                              </button>
+
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  className="student-action-button delete"
+                                  onClick={() =>
+                                    handleDelete(
+                                      student
+                                    )
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
