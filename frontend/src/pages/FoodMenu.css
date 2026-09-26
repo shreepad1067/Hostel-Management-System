@@ -1,91 +1,258 @@
+/* =========================================================
+   HOSTELHUB FOOD MENU
+   ========================================================= */
+
+
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
 .food-message {
-  padding: 14px 18px;
   margin-bottom: 20px;
+
+  padding: 13px 16px;
+
   border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
+
+  font-size: 12.5px;
+
+  font-weight: 600;
+
+  line-height: 1.55;
 }
 
 .food-message.success {
-  background: #ecfdf5;
-  color: #166534;
   border: 1px solid #bbf7d0;
+
+  background: #f0fdf4;
+
+  color: #166534;
 }
 
 .food-message.error {
-  background: #fef2f2;
-  color: #991b1b;
   border: 1px solid #fecaca;
+
+  background: #fff1f2;
+
+  color: #b91c1c;
 }
+
+
+/* =========================================================
+   SECTION HEADER
+   ========================================================= */
 
 .food-section-header {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
+  justify-content: space-between;
+
   gap: 18px;
-  margin-bottom: 22px;
+
+  margin-bottom: 21px;
 }
 
 .food-section-header h2 {
-  margin: 0 0 6px;
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: 18px;
+
+  line-height: 1.3;
+
+  font-weight: 730;
 }
 
 .food-section-header p {
-  margin: 0;
+  margin: 6px 0 0;
+
   color: #64748b;
+
+  font-size: 12.5px;
+
+  line-height: 1.55;
 }
+
+
+/* =========================================================
+   TODAY'S MENU
+   ========================================================= */
 
 .food-today-grid {
   display: grid;
+
   grid-template-columns:
     repeat(4, minmax(0, 1fr));
-  gap: 18px;
+
+  gap: 17px;
 }
 
 .food-today-card {
+  position: relative;
+
+  min-height: 205px;
+
+  padding: 19px;
+
+  overflow: hidden;
+
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 20px;
-  background: #ffffff;
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff 0%,
+      #fbfcfe 100%
+    );
+
+  color: #334155;
+
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.035);
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
+.food-today-card::after {
+  content: "";
+
+  position: absolute;
+
+  width: 85px;
+  height: 85px;
+
+  right: -38px;
+  top: -38px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(99, 102, 241, 0.055);
+}
+
+.food-today-card:hover {
+  transform: translateY(-3px);
+
+  border-color: #c7d2fe;
+
+  box-shadow:
+    0 13px 28px rgba(15, 23, 42, 0.075);
+}
+
+
+/* =========================================================
+   MEAL ICON
+   ========================================================= */
+
 .food-meal-icon {
-  width: 46px;
-  height: 46px;
+  position: relative;
+
+  z-index: 1;
+
+  width: 47px;
+  height: 47px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
+
+  margin-bottom: 15px;
+
   border-radius: 12px;
-  margin-bottom: 14px;
-  font-size: 22px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #eef2ff,
+      #e0e7ff
+    );
+
+  color: #4f46e5;
+
+  font-size: 21px;
+
+  box-shadow:
+    0 4px 10px rgba(79, 70, 229, 0.07);
 }
 
 .food-today-card h3 {
+  position: relative;
+
+  z-index: 1;
+
   margin: 0 0 9px;
+
+  color: #0f172a;
+
+  font-size: 16px;
+
+  font-weight: 730;
 }
 
 .food-items {
-  min-height: 44px;
-  margin: 0 0 14px;
-  line-height: 1.5;
+  position: relative;
+
+  z-index: 1;
+
+  min-height: 45px;
+
+  margin: 0 0 13px;
+
   color: #475569;
+
+  font-size: 12px;
+
+  line-height: 1.6;
 }
 
 .food-today-card small {
-  color: #64748b;
+  position: relative;
+
+  z-index: 1;
+
+  color: #7c8a9d;
+
+  font-size: 10.5px;
+
+  line-height: 1.5;
 }
+
+
+/* =========================================================
+   WEEKLY SECTION
+   ========================================================= */
 
 .food-weekly-section {
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
+
+/* =========================================================
+   ADMIN MENU FORM
+   ========================================================= */
+
 .food-menu-form {
-  padding: 22px;
   margin-bottom: 24px;
-  border-radius: 14px;
+
+  padding: 22px;
+
   border: 1px solid #dbeafe;
-  background: #f8fafc;
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #f8fafc,
+      #f9fbff
+    );
+
+  color: #334155;
 }
 
 .food-form-heading {
@@ -93,24 +260,46 @@
 }
 
 .food-form-heading h3 {
-  margin: 0 0 5px;
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: 17px;
+
+  font-weight: 730;
 }
 
 .food-form-heading p {
-  margin: 0;
+  margin: 6px 0 0;
+
   color: #64748b;
+
+  font-size: 12px;
+
+  line-height: 1.55;
 }
+
+
+/* =========================================================
+   FORM GRID
+   ========================================================= */
 
 .food-form-grid {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
+
   gap: 18px;
 }
 
 .food-form-field {
+  min-width: 0;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 7px;
 }
 
@@ -119,159 +308,467 @@
 }
 
 .food-form-field label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
+  color: #334155;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
 }
+
+
+/* =========================================================
+   FORM CONTROLS
+   ========================================================= */
 
 .food-form-field input,
 .food-form-field select,
 .food-form-field textarea {
   width: 100%;
+
+  min-height: 43px;
+
+  padding: 10px 12px;
+
   box-sizing: border-box;
-  border: 1px solid #cbd5e1;
+
+  border: 1px solid #d5dde8;
   border-radius: 9px;
-  padding: 11px 12px;
+
+  outline: none;
+
   background: #ffffff;
-  font: inherit;
+
+  color: #172033;
+
+  font-family: inherit;
+
+  font-size: 12.5px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .food-form-field textarea {
+  min-height: 95px;
+
   resize: vertical;
+
+  line-height: 1.55;
 }
+
+.food-form-field input::placeholder,
+.food-form-field textarea::placeholder {
+  color: #94a3b8;
+}
+
+.food-form-field input:hover,
+.food-form-field select:hover,
+.food-form-field textarea:hover {
+  border-color: #b9c5d5;
+}
+
+.food-form-field input:focus,
+.food-form-field select:focus,
+.food-form-field textarea:focus {
+  border-color: #6366f1;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.10);
+}
+
+
+/* =========================================================
+   ACTIVE CHECKBOX
+   ========================================================= */
 
 .food-active-field {
   grid-column: 1 / -1;
+
   display: flex;
+
   align-items: center;
+
   gap: 9px;
-  font-size: 14px;
+
+  padding: 11px 12px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+
+  background: #ffffff;
+
   color: #475569;
+
+  font-size: 12px;
+
+  font-weight: 600;
 }
 
 .food-active-field input {
   width: 17px;
   height: 17px;
+
+  margin: 0;
+
+  accent-color: #4f46e5;
+
+  cursor: pointer;
 }
+
+
+/* =========================================================
+   FORM ACTIONS
+   ========================================================= */
 
 .food-form-actions {
   margin-top: 20px;
+
   display: flex;
+
+  align-items: center;
   justify-content: flex-end;
+
   gap: 10px;
 }
 
+
+/* =========================================================
+   WEEK GRID
+   ========================================================= */
+
 .food-week-grid {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
-  gap: 18px;
+
+  gap: 17px;
 }
 
+
+/* =========================================================
+   DAY CARD
+   ========================================================= */
+
 .food-day-card {
+  overflow: hidden;
+
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  overflow: hidden;
+
   background: #ffffff;
+
+  color: #334155;
+
+  box-shadow:
+    0 2px 7px rgba(15, 23, 42, 0.03);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
+
+.food-day-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #d7dcf9;
+
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.065);
+}
+
+
+/* =========================================================
+   DAY TITLE
+   ========================================================= */
 
 .food-day-title {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
-  padding: 15px 18px;
-  background: #f8fafc;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 14px 17px;
+
   border-bottom: 1px solid #e2e8f0;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f8fafc,
+      #f5f7ff
+    );
 }
 
 .food-day-title h3 {
   margin: 0;
+
+  color: #0f172a;
+
+  font-size: 15px;
+
+  font-weight: 730;
 }
 
 .food-day-title span {
   color: #64748b;
-  font-size: 12px;
+
+  font-size: 10.5px;
+
+  font-weight: 600;
 }
 
+
+/* =========================================================
+   DAY MEALS
+   ========================================================= */
+
 .food-day-meals {
-  padding: 4px 18px;
+  padding: 3px 17px;
 }
 
 .food-day-meal {
   padding: 15px 0;
-  border-bottom: 1px solid #e2e8f0;
+
+  border-bottom: 1px solid #edf1f6;
+
+  color: #334155;
 }
 
 .food-day-meal:last-child {
-  border-bottom: none;
+  border-bottom: 0;
 }
 
 .food-day-meal.inactive {
-  opacity: 0.58;
+  opacity: 0.56;
 }
 
 .food-day-meal-top {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
+  justify-content: space-between;
+
   gap: 10px;
+}
+
+.food-day-meal-top strong {
+  color: #1e293b;
+
+  font-size: 12.5px;
+
+  font-weight: 700;
 }
 
 .food-day-meal p {
   margin: 7px 0;
+
   color: #475569;
-  line-height: 1.45;
+
+  font-size: 11.5px;
+
+  line-height: 1.55;
 }
 
 .food-day-meal small {
-  color: #64748b;
+  color: #7c8a9d;
+
+  font-size: 10px;
+
+  line-height: 1.45;
 }
+
+
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
 
 .food-active-badge,
 .food-inactive-badge {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height: 23px;
+
   padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
+
+  border-radius: 999px;
+
+  font-size: 9.5px;
+
+  line-height: 1;
+
+  font-weight: 750;
 }
 
 .food-active-badge {
+  border: 1px solid #bbf7d0;
+
   background: #dcfce7;
+
   color: #166534;
 }
 
 .food-inactive-badge {
+  border: 1px solid #e2e8f0;
+
   background: #f1f5f9;
+
   color: #64748b;
 }
 
+
+/* =========================================================
+   EDIT / DELETE ACTIONS
+   ========================================================= */
+
 .food-actions {
   display: flex;
-  gap: 8px;
+
+  align-items: center;
+
+  gap: 7px;
+
   margin-top: 12px;
 }
 
 .food-actions button {
-  border: 1px solid #cbd5e1;
-  background: white;
-  color: #2563eb;
+  min-height: 31px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 10px;
+
+  border: 1px solid #c7d2fe;
   border-radius: 7px;
-  padding: 6px 11px;
+
+  background: #eef2ff;
+
+  color: #4338ca;
+
+  font-family: inherit;
+
+  font-size: 10.5px;
+
+  font-weight: 700;
+
   cursor: pointer;
-  font-weight: 600;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.food-actions button:hover {
+  transform: translateY(-1px);
+
+  border-color: #a5b4fc;
+
+  background: #e0e7ff;
 }
 
 .food-actions button.delete {
+  border-color: #fecaca;
+
+  background: #fef2f2;
+
   color: #dc2626;
 }
 
-.food-day-empty,
-.food-empty {
-  color: #64748b;
-  text-align: center;
-  padding: 26px 16px;
+.food-actions button.delete:hover {
+  border-color: #fca5a5;
+
+  background: #fee2e2;
 }
 
+
+/* =========================================================
+   EMPTY STATES
+   ========================================================= */
+
+.food-day-empty,
+.food-empty {
+  padding: 30px 16px;
+
+  color: #64748b;
+
+  text-align: center;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   SPECIAL MEAL ACCENTS
+   ========================================================= */
+
+.food-today-card:nth-child(1)
+.food-meal-icon {
+  background:
+    linear-gradient(
+      135deg,
+      #fef3c7,
+      #fef9c3
+    );
+
+  color: #b45309;
+}
+
+.food-today-card:nth-child(2)
+.food-meal-icon {
+  background:
+    linear-gradient(
+      135deg,
+      #dcfce7,
+      #ecfdf5
+    );
+
+  color: #15803d;
+}
+
+.food-today-card:nth-child(3)
+.food-meal-icon {
+  background:
+    linear-gradient(
+      135deg,
+      #ffedd5,
+      #fff7ed
+    );
+
+  color: #c2410c;
+}
+
+.food-today-card:nth-child(4)
+.food-meal-icon {
+  background:
+    linear-gradient(
+      135deg,
+      #e0e7ff,
+      #eef2ff
+    );
+
+  color: #4338ca;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
 
 @media (max-width: 1100px) {
   .food-today-grid {
@@ -291,6 +788,10 @@
   .food-active-field {
     grid-column: auto;
   }
+
+  .food-menu-form {
+    padding: 18px;
+  }
 }
 
 
@@ -301,6 +802,44 @@
 
   .food-section-header {
     align-items: flex-start;
+
     flex-direction: column;
+  }
+
+  .food-today-card {
+    min-height: auto;
+  }
+
+  .food-form-actions {
+    flex-direction: column-reverse;
+
+    align-items: stretch;
+  }
+
+  .food-form-actions button {
+    width: 100%;
+  }
+
+  .food-actions {
+    flex-wrap: wrap;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .food-menu-form {
+    padding: 15px;
+  }
+
+  .food-day-title {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .food-day-meals {
+    padding-left: 14px;
+
+    padding-right: 14px;
   }
 }

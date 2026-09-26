@@ -1,30 +1,42 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../services/api";
+import "./Login.css";
+
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
 
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const navigate = useNavigate();
 
+
   const getErrorMessage = (error) => {
     if (!error.response) {
       return "Unable to connect to the backend.";
     }
 
-    const detail = error.response.data?.detail;
+    const detail =
+      error.response.data?.detail;
 
     if (typeof detail === "string") {
       return detail;
@@ -32,22 +44,33 @@ function Login() {
 
     if (Array.isArray(detail)) {
       return detail
-        .map((item) => item.msg || "Validation error")
+        .map(
+          (item) =>
+            item.msg || "Validation error"
+        )
         .join(", ");
     }
 
     return "Something went wrong. Please try again.";
   };
 
+
   const resetForgotPasswordForm = () => {
     setForgotMode(false);
     setForgotStep(1);
+
     setIdentifier("");
     setOtp("");
+
     setNewPassword("");
     setConfirmPassword("");
+
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+
     setMessage("");
   };
+
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -55,10 +78,14 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/login", {
-        username,
-        password,
-      });
+      const response =
+        await api.post(
+          "/auth/login",
+          {
+            username,
+            password,
+          }
+        );
 
       localStorage.setItem(
         "access_token",
@@ -66,18 +93,26 @@ function Login() {
       );
 
       navigate("/dashboard");
+
     } catch (error) {
-      alert(getErrorMessage(error));
+      alert(
+        getErrorMessage(error)
+      );
+
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleSendOtp = async (event) => {
     event.preventDefault();
 
     if (!identifier.trim()) {
-      setMessage("Enter your registered email or phone number.");
+      setMessage(
+        "Enter your registered email or phone number."
+      );
+
       return;
     }
 
@@ -85,12 +120,14 @@ function Login() {
     setMessage("");
 
     try {
-      const response = await api.post(
-        "/auth/forgot-password",
-        {
-          identifier: identifier.trim(),
-        }
-      );
+      const response =
+        await api.post(
+          "/auth/forgot-password",
+          {
+            identifier:
+              identifier.trim(),
+          }
+        );
 
       setMessage(
         response.data?.message ||
@@ -98,18 +135,26 @@ function Login() {
       );
 
       setForgotStep(2);
+
     } catch (error) {
-      setMessage(getErrorMessage(error));
+      setMessage(
+        getErrorMessage(error)
+      );
+
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleVerifyOtp = async (event) => {
     event.preventDefault();
 
     if (!otp.trim()) {
-      setMessage("Enter the OTP you received.");
+      setMessage(
+        "Enter the OTP you received."
+      );
+
       return;
     }
 
@@ -117,71 +162,141 @@ function Login() {
     setMessage("");
 
     try {
-      await api.post("/auth/verify-otp", {
-        identifier: identifier.trim(),
-        otp: otp.trim(),
-      });
+      await api.post(
+        "/auth/verify-otp",
+        {
+          identifier:
+            identifier.trim(),
+
+          otp:
+            otp.trim(),
+        }
+      );
 
       setMessage(
         "OTP verified successfully. Create your new password."
       );
 
       setForgotStep(3);
+
     } catch (error) {
-      setMessage(getErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (event) => {
-    event.preventDefault();
-
-    if (newPassword.length < 8) {
       setMessage(
-        "New password must contain at least 8 characters."
-      );
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setMessage("Passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      await api.post("/auth/reset-password", {
-        identifier: identifier.trim(),
-        otp: otp.trim(),
-        new_password: newPassword,
-      });
-
-      alert(
-        "Password reset successfully. You can now sign in with your new password."
+        getErrorMessage(error)
       );
 
-      resetForgotPasswordForm();
-      setPassword("");
-    } catch (error) {
-      setMessage(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
+
+
+  const handleResetPassword =
+    async (event) => {
+      event.preventDefault();
+
+      if (newPassword.length < 8) {
+        setMessage(
+          "New password must contain at least 8 characters."
+        );
+
+        return;
+      }
+
+      if (
+        newPassword !==
+        confirmPassword
+      ) {
+        setMessage(
+          "Passwords do not match."
+        );
+
+        return;
+      }
+
+      setLoading(true);
+      setMessage("");
+
+      try {
+        await api.post(
+          "/auth/reset-password",
+          {
+            identifier:
+              identifier.trim(),
+
+            otp:
+              otp.trim(),
+
+            new_password:
+              newPassword,
+          }
+        );
+
+        alert(
+          "Password reset successfully. You can now sign in with your new password."
+        );
+
+        resetForgotPasswordForm();
+
+        setPassword("");
+
+      } catch (error) {
+        setMessage(
+          getErrorMessage(error)
+        );
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+
+  const openForgotPassword = () => {
+    setForgotMode(true);
+    setForgotStep(1);
+    setMessage("");
+  };
+
+
+  const renderPasswordToggle = (
+    visible,
+    setter,
+    label
+  ) => {
+    return (
+      <button
+        type="button"
+        className="auth-password-toggle"
+        onClick={() =>
+          setter(!visible)
+        }
+        aria-label={
+          visible
+            ? `Hide ${label}`
+            : `Show ${label}`
+        }
+      >
+        {visible ? "Hide" : "Show"}
+      </button>
+    );
+  };
+
 
   const renderLoginForm = () => {
     return (
       <>
         <div className="auth-heading">
-          <h2>Welcome back!</h2>
+          <span className="auth-heading-label">
+            SECURE ACCESS
+          </span>
+
+          <h2>Welcome back</h2>
 
           <p>
-            Sign in to continue to your account.
+            Sign in to access your
+            HostelHub account.
           </p>
         </div>
+
 
         <form
           onSubmit={handleLogin}
@@ -194,7 +309,7 @@ function Login() {
 
             <div className="auth-input-wrapper">
               <span className="auth-input-icon">
-                👤
+                ♙
               </span>
 
               <input
@@ -202,7 +317,9 @@ function Login() {
                 type="text"
                 value={username}
                 onChange={(event) =>
-                  setUsername(event.target.value)
+                  setUsername(
+                    event.target.value
+                  )
                 }
                 placeholder="Enter your username"
                 autoComplete="username"
@@ -211,58 +328,55 @@ function Login() {
             </div>
           </div>
 
-          <div className="auth-field">
-            <label htmlFor="password">
-              Password
-            </label>
 
-            <div className="auth-input-wrapper">
+          <div className="auth-field">
+            <div className="auth-field-heading">
+              <label htmlFor="password">
+                Password
+              </label>
+
+              <button
+                type="button"
+                className="auth-forgot-link"
+                onClick={
+                  openForgotPassword
+                }
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <div className="auth-input-wrapper auth-password-wrapper">
               <span className="auth-input-icon">
-                🔒
+                ◇
               </span>
 
               <input
                 id="password"
-                type="password"
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 value={password}
                 onChange={(event) =>
-                  setPassword(event.target.value)
+                  setPassword(
+                    event.target.value
+                  )
                 }
                 placeholder="Enter your password"
                 autoComplete="current-password"
                 required
               />
+
+              {renderPasswordToggle(
+                showPassword,
+                setShowPassword,
+                "password"
+              )}
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginTop: "-4px",
-              marginBottom: "4px",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setForgotMode(true);
-                setForgotStep(1);
-                setMessage("");
-              }}
-              style={{
-                border: "none",
-                background: "none",
-                padding: 0,
-                cursor: "pointer",
-                color: "#2563eb",
-                fontSize: "14px",
-                fontWeight: "600",
-              }}
-            >
-              Forgot Password?
-            </button>
-          </div>
 
           <button
             type="submit"
@@ -283,62 +397,117 @@ function Login() {
           </button>
         </form>
 
+
         <div className="auth-divider">
           <span>ACCOUNT ACCESS</span>
         </div>
 
-        <div className="auth-create-account">
+
+        <div className="auth-account-info">
+          <div className="auth-account-info-icon">
+            i
+          </div>
+
           <p>
-            Student and Warden accounts are created
-            by the hostel administration.
+            Student and Warden accounts
+            are securely created by the
+            hostel administration.
           </p>
         </div>
       </>
     );
   };
 
+
+  const renderForgotProgress = () => {
+    return (
+      <div className="auth-forgot-progress">
+        <div
+          className={
+            forgotStep >= 1
+              ? "auth-step active"
+              : "auth-step"
+          }
+        >
+          <span>1</span>
+          <small>Account</small>
+        </div>
+
+        <div className="auth-step-line" />
+
+        <div
+          className={
+            forgotStep >= 2
+              ? "auth-step active"
+              : "auth-step"
+          }
+        >
+          <span>2</span>
+          <small>Verify</small>
+        </div>
+
+        <div className="auth-step-line" />
+
+        <div
+          className={
+            forgotStep >= 3
+              ? "auth-step active"
+              : "auth-step"
+          }
+        >
+          <span>3</span>
+          <small>Reset</small>
+        </div>
+      </div>
+    );
+  };
+
+
   const renderForgotPasswordForm = () => {
     return (
       <>
         <div className="auth-heading">
+          <span className="auth-heading-label">
+            ACCOUNT RECOVERY
+          </span>
+
           <h2>
             {forgotStep === 1 &&
-              "Forgot Password"}
+              "Forgot password"}
 
             {forgotStep === 2 &&
-              "Verify OTP"}
+              "Verify your OTP"}
 
             {forgotStep === 3 &&
-              "Create New Password"}
+              "Create new password"}
           </h2>
 
           <p>
             {forgotStep === 1 &&
-              "Enter your registered email or phone number."}
+              "Enter your registered email address or phone number."}
 
             {forgotStep === 2 &&
-              "Enter the OTP sent to your registered contact details."}
+              "Enter the 6-digit OTP sent to your registered contact details."}
 
             {forgotStep === 3 &&
-              "Choose a new password for your HostelHub account."}
+              "Choose a secure new password for your HostelHub account."}
           </p>
         </div>
 
+
+        {renderForgotProgress()}
+
+
         {message && (
-          <div
-            style={{
-              marginBottom: "18px",
-              padding: "12px 14px",
-              borderRadius: "8px",
-              background: "#f1f5f9",
-              color: "#334155",
-              fontSize: "14px",
-              lineHeight: "1.5",
-            }}
-          >
-            {message}
+          <div className="auth-message">
+            <span className="auth-message-icon">
+              i
+            </span>
+
+            <span>{message}</span>
           </div>
         )}
+
 
         {forgotStep === 1 && (
           <form
@@ -352,7 +521,7 @@ function Login() {
 
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">
-                  ✉️
+                  @
                 </span>
 
                 <input
@@ -370,6 +539,7 @@ function Login() {
                 />
               </div>
             </div>
+
 
             <button
               type="submit"
@@ -391,6 +561,7 @@ function Login() {
           </form>
         )}
 
+
         {forgotStep === 2 && (
           <form
             onSubmit={handleVerifyOtp}
@@ -401,9 +572,9 @@ function Login() {
                 6-Digit OTP
               </label>
 
-              <div className="auth-input-wrapper">
+              <div className="auth-input-wrapper auth-otp-wrapper">
                 <span className="auth-input-icon">
-                  🔑
+                  #
                 </span>
 
                 <input
@@ -414,8 +585,14 @@ function Login() {
                   onChange={(event) =>
                     setOtp(
                       event.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 6)
+                        .replace(
+                          /\D/g,
+                          ""
+                        )
+                        .slice(
+                          0,
+                          6
+                        )
                     )
                   }
                   placeholder="Enter OTP"
@@ -425,6 +602,7 @@ function Login() {
                 />
               </div>
             </div>
+
 
             <button
               type="submit"
@@ -444,33 +622,28 @@ function Login() {
               )}
             </button>
 
+
             <button
               type="button"
+              className="auth-secondary-action"
               onClick={() => {
                 setForgotStep(1);
                 setOtp("");
                 setMessage("");
               }}
               disabled={loading}
-              style={{
-                width: "100%",
-                marginTop: "12px",
-                padding: "10px",
-                border: "none",
-                background: "none",
-                cursor: "pointer",
-                color: "#2563eb",
-                fontWeight: "600",
-              }}
             >
               Send OTP Again
             </button>
           </form>
         )}
 
+
         {forgotStep === 3 && (
           <form
-            onSubmit={handleResetPassword}
+            onSubmit={
+              handleResetPassword
+            }
             className="auth-form"
           >
             <div className="auth-field">
@@ -478,52 +651,76 @@ function Login() {
                 New Password
               </label>
 
-              <div className="auth-input-wrapper">
+              <div className="auth-input-wrapper auth-password-wrapper">
                 <span className="auth-input-icon">
-                  🔒
+                  ◇
                 </span>
 
                 <input
                   id="newPassword"
-                  type="password"
+                  type={
+                    showNewPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={newPassword}
                   onChange={(event) =>
                     setNewPassword(
                       event.target.value
                     )
                   }
-                  placeholder="Enter new password"
+                  placeholder="Minimum 8 characters"
                   autoComplete="new-password"
                   required
                 />
+
+                {renderPasswordToggle(
+                  showNewPassword,
+                  setShowNewPassword,
+                  "new password"
+                )}
               </div>
             </div>
+
 
             <div className="auth-field">
               <label htmlFor="confirmPassword">
                 Confirm Password
               </label>
 
-              <div className="auth-input-wrapper">
+              <div className="auth-input-wrapper auth-password-wrapper">
                 <span className="auth-input-icon">
-                  🔒
+                  ◇
                 </span>
 
                 <input
                   id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
+                  type={
+                    showConfirmPassword
+                      ? "text"
+                      : "password"
+                  }
+                  value={
+                    confirmPassword
+                  }
                   onChange={(event) =>
                     setConfirmPassword(
                       event.target.value
                     )
                   }
-                  placeholder="Confirm new password"
+                  placeholder="Confirm your new password"
                   autoComplete="new-password"
                   required
                 />
+
+                {renderPasswordToggle(
+                  showConfirmPassword,
+                  setShowConfirmPassword,
+                  "confirmed password"
+                )}
               </div>
             </div>
+
 
             <button
               type="submit"
@@ -545,89 +742,157 @@ function Login() {
           </form>
         )}
 
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "22px",
-          }}
+
+        <button
+          type="button"
+          className="auth-back-button"
+          onClick={
+            resetForgotPasswordForm
+          }
+          disabled={loading}
         >
-          <button
-            type="button"
-            onClick={resetForgotPasswordForm}
-            disabled={loading}
-            style={{
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: "#2563eb",
-              fontSize: "14px",
-              fontWeight: "600",
-            }}
-          >
-            ← Back to Sign In
-          </button>
-        </div>
+          <span>←</span>
+          Back to Sign In
+        </button>
       </>
     );
   };
 
+
   return (
     <div className="auth-page">
-      {/* LEFT SIDE */}
       <section className="auth-visual">
-        <div className="auth-visual-overlay"></div>
+        <div className="auth-visual-overlay" />
+
+        <div className="auth-visual-glow auth-glow-one" />
+        <div className="auth-visual-glow auth-glow-two" />
+
 
         <div className="auth-visual-content">
-          <div className="auth-logo">
-            H
+          <div className="auth-brand">
+            <div className="auth-logo">
+              H
+            </div>
+
+            <div className="auth-brand-text">
+              <strong>
+                HostelHub
+              </strong>
+
+              <span>
+                Smart Hostel Management
+              </span>
+            </div>
           </div>
 
-          <h1>HostelHub</h1>
 
-          <h2>
-            Hostel Management System
-          </h2>
+          <div className="auth-hero-content">
+            <span className="auth-hero-badge">
+              MODERN HOSTEL OPERATIONS
+            </span>
 
-          <p>
-            Everything you need to manage
-            <br />
-            your hostel life in one place.
-          </p>
+            <h1>
+              Your hostel.
+              <br />
+              Smarter.
+              <br />
+              Connected.
+            </h1>
 
-          <div className="auth-feature-list">
-            <div className="auth-feature">
-              <span>✓</span>
-              <p>
-                Manage rooms and allocations
-              </p>
+            <p>
+              One secure platform for
+              students, wardens and
+              administrators to manage
+              everyday hostel operations.
+            </p>
+          </div>
+
+
+          <div className="auth-feature-grid">
+            <div className="auth-feature-card">
+              <div className="auth-feature-icon">
+                ⌂
+              </div>
+
+              <div>
+                <strong>
+                  Rooms
+                </strong>
+
+                <span>
+                  Smart allocation
+                </span>
+              </div>
             </div>
 
-            <div className="auth-feature">
-              <span>✓</span>
-              <p>
-                Track fees and attendance
-              </p>
+
+            <div className="auth-feature-card">
+              <div className="auth-feature-icon">
+                ✓
+              </div>
+
+              <div>
+                <strong>
+                  Attendance
+                </strong>
+
+                <span>
+                  Easy tracking
+                </span>
+              </div>
             </div>
 
-            <div className="auth-feature">
-              <span>✓</span>
-              <p>
-                Handle complaints and visitors
-              </p>
+
+            <div className="auth-feature-card">
+              <div className="auth-feature-icon">
+                ⚠
+              </div>
+
+              <div>
+                <strong>
+                  Safety
+                </strong>
+
+                <span>
+                  SOS assistance
+                </span>
+              </div>
             </div>
 
-            <div className="auth-feature">
-              <span>✓</span>
-              <p>
-                Stay updated with hostel notices
-              </p>
+
+            <div className="auth-feature-card">
+              <div className="auth-feature-icon">
+                ✦
+              </div>
+
+              <div>
+                <strong>
+                  AI Tools
+                </strong>
+
+                <span>
+                  Smart assistance
+                </span>
+              </div>
             </div>
+          </div>
+
+
+          <div className="auth-visual-footer">
+            <span className="auth-live-dot" />
+
+            Secure hostel management,
+            available anytime.
           </div>
         </div>
       </section>
 
-      {/* RIGHT SIDE */}
+
       <section className="auth-form-section">
+        <div className="auth-form-bg-circle auth-circle-one" />
+        <div className="auth-form-bg-circle auth-circle-two" />
+
+
         <div className="auth-form-container">
           <div className="auth-mobile-brand">
             <div className="auth-mobile-logo">
@@ -635,23 +900,42 @@ function Login() {
             </div>
 
             <div>
-              <h1>HostelHub</h1>
+              <h1>
+                HostelHub
+              </h1>
+
               <p>
                 Hostel Management System
               </p>
             </div>
           </div>
 
-          {!forgotMode
-            ? renderLoginForm()
-            : renderForgotPasswordForm()}
+
+          <div className="auth-form-card">
+            {!forgotMode
+              ? renderLoginForm()
+              : renderForgotPasswordForm()}
+          </div>
+
 
           <div className="auth-security">
-            <span>🔐</span>
             <span>
-              Your account is securely protected
+              ◈
+            </span>
+
+            <span>
+              Secure account access
+            </span>
+
+            <span className="auth-security-dot">
+              •
+            </span>
+
+            <span>
+              HostelHub
             </span>
           </div>
+
 
           <p className="auth-copyright">
             © 2026 HostelHub · Hostel Management System
@@ -661,5 +945,6 @@ function Login() {
     </div>
   );
 }
+
 
 export default Login;

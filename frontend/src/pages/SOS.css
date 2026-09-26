@@ -1,99 +1,270 @@
+/* =========================================================
+   HOSTELHUB SOS / EMERGENCY MANAGEMENT
+   ========================================================= */
+
+
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
 .sos-message {
-  padding: 14px 18px;
   margin-bottom: 20px;
+
+  padding: 13px 16px;
+
   border-radius: 10px;
-  font-weight: 500;
-  font-size: 14px;
+
+  font-size: 12.5px;
+
+  font-weight: 600;
+
+  line-height: 1.55;
 }
 
 .sos-message.error {
-  color: #991b1b;
-  background: #fef2f2;
   border: 1px solid #fecaca;
+
+  background: #fff1f2;
+
+  color: #b91c1c;
 }
 
 .sos-message.success {
-  color: #166534;
-  background: #ecfdf5;
   border: 1px solid #bbf7d0;
+
+  background: #f0fdf4;
+
+  color: #166534;
 }
 
+
+/* =========================================================
+   PENDING SOS COUNTER
+   ========================================================= */
+
 .sos-pending-counter {
-  min-width: 130px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: #f8fafc;
+  min-width: 145px;
+
+  padding: 13px 17px;
+
   border: 1px solid #e2e8f0;
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f8fafc
+    );
+
   text-align: center;
+
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.035);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .sos-pending-counter span {
   display: block;
+
   color: #64748b;
-  font-size: 11px;
-  font-weight: 700;
+
+  font-size: 9.5px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.65px;
+
+  text-transform: uppercase;
 }
 
 .sos-pending-counter strong {
   display: block;
-  margin-top: 4px;
-  font-size: 26px;
+
+  margin-top: 5px;
+
+  color: #0f172a;
+
+  font-size: 25px;
+
+  line-height: 1.1;
+
+  font-weight: 800;
 }
 
+
+/* Active emergency */
+
 .sos-pending-counter.active {
-  background: #fef2f2;
-  border-color: #ef4444;
+  border-color: #fca5a5;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fff1f2,
+      #fff7f7
+    );
+
+  box-shadow:
+    0 7px 20px rgba(220, 38, 38, 0.08);
+}
+
+.sos-pending-counter.active span {
   color: #b91c1c;
 }
 
-.sos-emergency-card {
-  padding: 24px;
-  margin-bottom: 22px;
-  border-radius: 16px;
-  border: 2px solid #ef4444;
-  background: #fff7f7;
+.sos-pending-counter.active strong {
+  color: #b91c1c;
 }
 
+
+/* =========================================================
+   EMERGENCY CARD
+   ========================================================= */
+
+.sos-emergency-card {
+  position: relative;
+
+  margin-bottom: 24px;
+
+  padding: 23px;
+
+  overflow: hidden;
+
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #dc2626;
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fff7f7 0%,
+      #fffafa 100%
+    );
+
+  box-shadow:
+    0 4px 16px rgba(220, 38, 38, 0.045);
+}
+
+.sos-emergency-card::after {
+  content: "";
+
+  position: absolute;
+
+  width: 160px;
+  height: 160px;
+
+  right: -80px;
+  top: -80px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(220, 38, 38, 0.045);
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   EMERGENCY HEADING
+   ========================================================= */
+
 .sos-emergency-heading {
+  position: relative;
+
+  z-index: 1;
+
   display: flex;
+
   align-items: center;
-  gap: 15px;
+
+  gap: 14px;
+
   margin-bottom: 22px;
 }
 
 .sos-warning-icon {
   width: 48px;
   height: 48px;
+
+  min-width: 48px;
+
   display: flex;
-  justify-content: center;
+
   align-items: center;
-  border-radius: 50%;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ef4444,
+      #dc2626
+    );
+
   color: #ffffff;
-  background: #dc2626;
-  font-size: 28px;
-  font-weight: 800;
+
+  font-size: 22px;
+
+  font-weight: 850;
+
+  box-shadow:
+    0 8px 18px rgba(220, 38, 38, 0.20);
 }
 
 .sos-emergency-heading h2 {
-  margin: 0 0 5px;
+  margin: 0;
+
   color: #991b1b;
+
+  font-size: 18px;
+
+  line-height: 1.3;
+
+  font-weight: 760;
 }
 
 .sos-emergency-heading p {
-  margin: 0;
+  margin: 5px 0 0;
+
   color: #7f1d1d;
+
+  font-size: 12px;
+
+  line-height: 1.55;
 }
 
+
+/* =========================================================
+   SOS FORM
+   ========================================================= */
+
 .sos-form {
+  position: relative;
+
+  z-index: 1;
+
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
+
   gap: 18px;
 }
 
 .sos-field {
+  min-width: 0;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 7px;
 }
 
@@ -102,8 +273,10 @@
 }
 
 .sos-field label {
-  color: #475569;
-  font-size: 13px;
+  color: #334155;
+
+  font-size: 11.5px;
+
   font-weight: 700;
 }
 
@@ -111,53 +284,179 @@
 .sos-field select,
 .sos-field textarea {
   width: 100%;
+
+  min-height: 43px;
+
+  padding: 10px 12px;
+
   box-sizing: border-box;
-  padding: 11px 12px;
+
+  border: 1px solid #d5dde8;
   border-radius: 9px;
-  border: 1px solid #cbd5e1;
+
+  outline: none;
+
   background: #ffffff;
-  font: inherit;
+
+  color: #172033;
+
+  font-family: inherit;
+
+  font-size: 12.5px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .sos-field textarea {
+  min-height: 100px;
+
   resize: vertical;
+
+  line-height: 1.55;
 }
+
+.sos-field input::placeholder,
+.sos-field textarea::placeholder {
+  color: #94a3b8;
+}
+
+.sos-field input:hover,
+.sos-field select:hover,
+.sos-field textarea:hover {
+  border-color: #b9c5d5;
+}
+
+.sos-field input:focus,
+.sos-field select:focus,
+.sos-field textarea:focus {
+  border-color: #ef4444;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.09);
+}
+
+
+/* =========================================================
+   SUBMIT AREA
+   ========================================================= */
 
 .sos-submit-area {
   grid-column: 1 / -1;
+
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
+  justify-content: space-between;
+
   gap: 18px;
+
+  margin-top: 2px;
+
+  padding-top: 16px;
+
+  border-top: 1px solid #fee2e2;
 }
 
 .sos-submit-area p {
+  max-width: 570px;
+
   margin: 0;
+
   color: #64748b;
-  font-size: 13px;
+
+  font-size: 11px;
+
+  line-height: 1.55;
 }
+
+
+/* =========================================================
+   EMERGENCY BUTTON
+   ========================================================= */
 
 .sos-button {
-  border: none;
+  min-height: 43px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 0 20px;
+
+  flex-shrink: 0;
+
+  border: 1px solid #dc2626;
   border-radius: 10px;
-  padding: 12px 22px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ef4444,
+      #dc2626
+    );
+
   color: #ffffff;
-  background: #dc2626;
-  cursor: pointer;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
   font-weight: 800;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 18px rgba(220, 38, 38, 0.19);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
-.sos-button:hover {
-  background: #b91c1c;
+.sos-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  background:
+    linear-gradient(
+      135deg,
+      #dc2626,
+      #b91c1c
+    );
+
+  box-shadow:
+    0 11px 22px rgba(220, 38, 38, 0.25);
+}
+
+.sos-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .sos-button:disabled {
-  opacity: 0.6;
+  opacity: 0.56;
+
   cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
 }
 
+
+/* =========================================================
+   SOS RECORD SECTION
+   ========================================================= */
+
 .sos-record-section {
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .sos-section-header {
@@ -165,113 +464,366 @@
 }
 
 .sos-section-header h2 {
-  margin: 0 0 6px;
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: 18px;
+
+  font-weight: 730;
 }
 
 .sos-section-header p {
-  margin: 0;
+  margin: 6px 0 0;
+
   color: #64748b;
+
+  font-size: 12px;
+
+  line-height: 1.55;
 }
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
 
 .sos-table-wrapper {
   width: 100%;
+
   overflow-x: auto;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 2px 7px rgba(15, 23, 42, 0.025);
 }
 
 .sos-table {
   width: 100%;
+
   min-width: 950px;
+
   border-collapse: collapse;
+
+  background: #ffffff;
+
+  color: #334155;
 }
 
 .sos-table th {
-  padding: 12px 14px;
-  text-align: left;
-  color: #475569;
-  background: #f8fafc;
+  padding: 13px 14px;
+
   border-bottom: 1px solid #e2e8f0;
-  font-size: 12px;
+
+  background: #f8fafc;
+
+  color: #526176;
+
+  text-align: left;
+
+  font-size: 10px;
+
+  line-height: 1.35;
+
+  font-weight: 800;
+
+  letter-spacing: 0.55px;
+
   text-transform: uppercase;
+
+  white-space: nowrap;
 }
 
 .sos-table td {
   padding: 14px;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
-  font-size: 14px;
+
+  border-bottom: 1px solid #edf1f6;
+
+  color: #475569;
+
+  font-size: 12px;
+
+  line-height: 1.55;
+
   vertical-align: top;
+}
+
+.sos-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.sos-table tbody tr {
+  transition: background 0.16s ease;
+}
+
+.sos-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.sos-table td strong {
+  color: #1e293b;
+
+  font-weight: 700;
 }
 
 .sos-table td small {
   display: block;
-  margin-top: 8px;
-  color: #64748b;
+
+  margin-top: 6px;
+
+  color: #7c8a9d;
+
+  font-size: 10px;
+
+  line-height: 1.45;
 }
+
+
+/* =========================================================
+   PENDING SOS ROW
+   ========================================================= */
 
 .sos-pending-row {
-  background: #fff7f7;
+  background:
+    linear-gradient(
+      90deg,
+      #fff7f7,
+      #ffffff
+    ) !important;
 }
 
+.sos-pending-row td:first-child {
+  border-left: 3px solid #ef4444;
+}
+
+
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
+
 .sos-status {
-  display: inline-block;
-  padding: 5px 9px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height: 25px;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+
+  line-height: 1;
+
+  font-weight: 750;
+
+  white-space: nowrap;
 }
 
 .sos-status.pending {
-  color: #991b1b;
+  border: 1px solid #fecaca;
+
   background: #fee2e2;
+
+  color: #991b1b;
 }
 
 .sos-status.genuine {
-  color: #166534;
+  border: 1px solid #bbf7d0;
+
   background: #dcfce7;
+
+  color: #166534;
 }
 
 .sos-status.false {
-  color: #475569;
+  border: 1px solid #e2e8f0;
+
   background: #f1f5f9;
+
+  color: #475569;
+}
+
+
+/* =========================================================
+   PARENT NOTIFICATION STATUS
+   ========================================================= */
+
+.sos-parent-sent,
+.sos-parent-pending {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  font-size: 10.5px;
+
+  font-weight: 750;
 }
 
 .sos-parent-sent {
-  color: #166534;
-  font-weight: 700;
+  color: #15803d;
 }
 
 .sos-parent-pending {
   color: #b45309;
-  font-weight: 700;
 }
+
+
+/* =========================================================
+   VERIFICATION ACTIONS
+   ========================================================= */
 
 .sos-actions {
   display: flex;
-  gap: 8px;
+
+  align-items: center;
+
+  gap: 7px;
+
+  white-space: nowrap;
 }
 
 .sos-actions button {
-  border: none;
+  min-height: 31px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 10px;
+
   border-radius: 7px;
-  padding: 7px 11px;
+
+  font-family: inherit;
+
+  font-size: 10px;
+
+  font-weight: 750;
+
   cursor: pointer;
-  font-weight: 700;
+
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
+
+
+/* Genuine */
 
 .sos-actions .genuine {
-  color: #ffffff;
+  border: 1px solid #16a34a;
+
   background: #16a34a;
+
+  color: #ffffff;
 }
+
+.sos-actions .genuine:hover {
+  transform: translateY(-1px);
+
+  border-color: #15803d;
+
+  background: #15803d;
+
+  box-shadow:
+    0 5px 12px rgba(22, 163, 74, 0.16);
+}
+
+
+/* False */
 
 .sos-actions .false {
-  color: #ffffff;
-  background: #64748b;
+  border: 1px solid #cbd5e1;
+
+  background: #f1f5f9;
+
+  color: #475569;
 }
 
+.sos-actions .false:hover {
+  transform: translateY(-1px);
+
+  border-color: #94a3b8;
+
+  background: #e2e8f0;
+
+  color: #334155;
+}
+
+.sos-actions button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
 .sos-empty {
-  padding: 30px;
+  padding: 36px 20px;
+
   color: #64748b;
+
   text-align: center;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   TABLE SCROLLBAR
+   ========================================================= */
+
+.sos-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sos-table-wrapper::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.sos-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+
+  border-radius: 999px;
+}
+
+.sos-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 800px) {
+  .sos-pending-counter {
+    width: 100%;
+
+    text-align: left;
+  }
+
+  .sos-emergency-card {
+    padding: 20px;
+  }
 }
 
 
@@ -287,10 +839,47 @@
 
   .sos-submit-area {
     align-items: stretch;
+
     flex-direction: column;
   }
 
   .sos-button {
+    width: 100%;
+  }
+
+  .sos-emergency-heading {
+    align-items: flex-start;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .sos-emergency-card {
+    padding: 17px;
+
+    border-left-width: 4px;
+  }
+
+  .sos-warning-icon {
+    width: 43px;
+    height: 43px;
+
+    min-width: 43px;
+
+    font-size: 19px;
+  }
+
+  .sos-emergency-heading h2 {
+    font-size: 16px;
+  }
+
+  .sos-actions {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .sos-actions button {
     width: 100%;
   }
 }
