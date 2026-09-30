@@ -1,5 +1,13 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+    timezone,
+)
+
 from zoneinfo import ZoneInfo
+
+import jwt
 
 from fastapi import (
     APIRouter,
@@ -12,18 +20,27 @@ from fastapi import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from auth import (
+    ALGORITHM,
+    SECRET_KEY,
+)
+
 from database import get_db
 from dependencies import require_roles
 
 from models.meal_confirmation import (
     MealConfirmation,
+    MealQRSession,
 )
+
 from models.student import Student
 from models.user import User
 
 from schemas.meal_confirmation import (
-    MealConfirmationCreate,
     MealConfirmationResponse,
+    MealQRGenerateRequest,
+    MealQRResponse,
+    MealQRScanRequest,
     MealRecordResponse,
 )
 
@@ -57,32 +74,37 @@ def india_now() -> datetime:
     )
 
 
-def get_today() -> date:
+def today_india() -> date:
     return india_now().date()
+
+
+def utc_now_naive() -> datetime:
+    return datetime.now(
+        timezone.utc
+    ).replace(
+        tzinfo=None
+    )
 
 
 def normalize_meal_type(
     meal_type: str,
 ) -> str:
-    normalized = (
+    value = (
         meal_type
         .strip()
         .title()
     )
 
-    if normalized not in ALLOWED_MEALS:
+    if value not in ALLOWED_MEALS:
         raise HTTPException(
-            status_code=(
-                status.HTTP_400_BAD_REQUEST
-            ),
+            status_code=400,
             detail=(
-                "Invalid meal type. "
-                "Choose Breakfast, Lunch, "
-                "Snacks, or Dinner."
+                "Meal must be Breakfast, "
+                "Lunch, Snacks, or Dinner."
             ),
         )
 
-    return normalized
+    return value
 
 
 def get_student_for_user(
@@ -100,92 +122,163 @@ def get_student_for_user(
 
     if student is None:
         raise HTTPException(
-            status_code=(
-                status.HTTP_404_NOT_FOUND
-            ),
+            status_code=404,
             detail=(
-                "No student record is linked "
-                "to this user account."
+                "No student profile is "
+                "linked to this account."
             ),
         )
 
     return student
 
 
-def notify_parent_about_meal(
+def notify_parent(
     student: Student,
-    meal_type: str,
-    confirmed_at: datetime,
-) -> bool:
-    """
-    Parent notification failure must not
-    cancel the student's meal confirmation.
-    """
-
+    confirmation: MealConfirmation,
+) -> None:
     if not student.parent_email:
-        return False
+        return
 
     try:
-        india_time = confirmed_at
+        confirmed_time = (
+            confirmation.confirmed_at
+        )
 
-        if india_time.tzinfo is None:
-            india_time = india_time.replace(
-                tzinfo=INDIA_TIMEZONE
+        if confirmed_time.tzinfo is None:
+            confirmed_time = (
+                confirmed_time.replace(
+                    tzinfo=INDIA_TIMEZONE
+                )
             )
         else:
-            india_time = (
-                india_time.astimezone(
+            confirmed_time = (
+                confirmed_time.astimezone(
                     INDIA_TIMEZONE
                 )
             )
 
         send_parent_meal_notification(
-            parent_email=(
-                student.parent_email
-            ),
-            parent_name=(
-                student.parent_name
-            ),
+            parent_email=student.parent_email,
+            parent_name=student.parent_name,
             student_name=student.name,
-            student_code=(
-                student.student_code
-            ),
-            meal_type=meal_type,
+            student_code=student.student_code,
+            meal_type=confirmation.meal_type,
             meal_date=(
-                india_time
-                .date()
+                confirmation.meal_date
                 .strftime("%d-%m-%Y")
             ),
             confirmed_time=(
-                india_time
-                .strftime(
-                    "%I:%M %p"
-                )
+                confirmed_time
+                .strftime("%I:%M %p")
             ),
         )
 
-        return True
-
     except Exception as exc:
         print(
-            "Meal parent notification "
-            f"failed: {exc}"
+            "Parent meal notification failed: "
+            f"{exc}"
         )
-
-        return False
 
 
 @router.post(
-    "/confirm",
-    response_model=(
-        MealConfirmationResponse
-    ),
-    status_code=(
-        status.HTTP_201_CREATED
-    ),
+    "/qr/generate",
+    response_model=MealQRResponse,
 )
-def confirm_meal(
-    payload: MealConfirmationCreate,
+def generate_meal_qr(
+    payload: MealQRGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles("Warden")
+    ),
+):
+    meal_type = normalize_meal_type(
+        payload.meal_type
+    )
+
+    today = today_india()
+
+    active_sessions = (
+        db.query(MealQRSession)
+        .filter(
+            MealQRSession.meal_date
+            == today,
+
+            MealQRSession.meal_type
+            == meal_type,
+
+            MealQRSession.is_active
+            .is_(True),
+        )
+        .all()
+    )
+
+    for old_session in active_sessions:
+        old_session.is_active = False
+
+    expires_aware = (
+        datetime.now(
+            timezone.utc
+        )
+        + timedelta(
+            seconds=payload.duration_seconds
+        )
+    )
+
+    session = MealQRSession(
+        meal_type=meal_type,
+        meal_date=today,
+        expires_at=(
+            expires_aware.replace(
+                tzinfo=None
+            )
+        ),
+        created_by=current_user.id,
+        is_active=True,
+    )
+
+    db.add(session)
+    db.flush()
+
+    qr_token = jwt.encode(
+        {
+            "type":
+                "hostel_meal_qr",
+
+            "session_id":
+                session.id,
+
+            "meal_type":
+                meal_type,
+
+            "meal_date":
+                today.isoformat(),
+
+            "exp":
+                expires_aware,
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+    db.commit()
+    db.refresh(session)
+
+    return MealQRResponse(
+        session_id=session.id,
+        meal_type=session.meal_type,
+        meal_date=session.meal_date,
+        expires_at=session.expires_at,
+        qr_token=qr_token,
+    )
+
+
+@router.post(
+    "/scan",
+    response_model=MealConfirmationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def scan_meal_qr(
+    payload: MealQRScanRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles("Student")
@@ -196,11 +289,95 @@ def confirm_meal(
         current_user,
     )
 
-    meal_type = normalize_meal_type(
-        payload.meal_type
+    try:
+        token_data = jwt.decode(
+            payload.qr_token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This QR code has expired."
+            ),
+        )
+
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid meal QR code.",
+        )
+
+    if (
+        token_data.get("type")
+        != "hostel_meal_qr"
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid meal QR code.",
+        )
+
+    session_id = token_data.get(
+        "session_id"
     )
 
-    today = get_today()
+    if session_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid meal QR code.",
+        )
+
+    session = (
+        db.query(MealQRSession)
+        .filter(
+            MealQRSession.id
+            == int(session_id)
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Meal QR session not found."
+            ),
+        )
+
+    if not session.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This meal QR is no longer active."
+            ),
+        )
+
+    if (
+        session.expires_at
+        <= utc_now_naive()
+    ):
+        session.is_active = False
+
+        db.commit()
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This meal QR has expired."
+            ),
+        )
+
+    today = today_india()
+
+    if session.meal_date != today:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This meal QR is not valid today."
+            ),
+        )
 
     existing = (
         db.query(MealConfirmation)
@@ -212,27 +389,25 @@ def confirm_meal(
             == today,
 
             MealConfirmation.meal_type
-            == meal_type,
+            == session.meal_type,
         )
         .first()
     )
 
     if existing:
         raise HTTPException(
-            status_code=(
-                status.HTTP_409_CONFLICT
-            ),
+            status_code=409,
             detail=(
-                f"{meal_type} has already "
-                "been confirmed for today."
+                f"{session.meal_type} has already "
+                "been collected today."
             ),
         )
 
     confirmation = MealConfirmation(
         student_id=student.id,
         meal_date=today,
-        meal_type=meal_type,
-        status="Confirmed",
+        meal_type=session.meal_type,
+        status="Collected",
     )
 
     db.add(confirmation)
@@ -244,23 +419,17 @@ def confirm_meal(
         db.rollback()
 
         raise HTTPException(
-            status_code=(
-                status.HTTP_409_CONFLICT
-            ),
+            status_code=409,
             detail=(
-                f"{meal_type} has already "
-                "been confirmed for today."
+                "This meal was already collected."
             ),
         )
 
     db.refresh(confirmation)
 
-    notify_parent_about_meal(
-        student=student,
-        meal_type=meal_type,
-        confirmed_at=(
-            confirmation.confirmed_at
-        ),
+    notify_parent(
+        student,
+        confirmation,
     )
 
     return confirmation
@@ -272,7 +441,7 @@ def confirm_meal(
         MealConfirmationResponse
     ],
 )
-def get_my_today_meals(
+def my_meals_today(
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles("Student")
@@ -283,16 +452,14 @@ def get_my_today_meals(
         current_user,
     )
 
-    today = get_today()
-
-    records = (
+    return (
         db.query(MealConfirmation)
         .filter(
             MealConfirmation.student_id
             == student.id,
 
             MealConfirmation.meal_date
-            == today,
+            == today_india(),
         )
         .order_by(
             MealConfirmation
@@ -302,8 +469,6 @@ def get_my_today_meals(
         .all()
     )
 
-    return records
-
 
 @router.get(
     "/my-history",
@@ -311,9 +476,9 @@ def get_my_today_meals(
         MealConfirmationResponse
     ],
 )
-def get_my_meal_history(
+def my_meal_history(
     limit: int = Query(
-        default=30,
+        default=50,
         ge=1,
         le=200,
     ),
@@ -327,7 +492,7 @@ def get_my_meal_history(
         current_user,
     )
 
-    records = (
+    return (
         db.query(MealConfirmation)
         .filter(
             MealConfirmation.student_id
@@ -346,8 +511,6 @@ def get_my_meal_history(
         .all()
     )
 
-    return records
-
 
 @router.get(
     "/records",
@@ -355,7 +518,7 @@ def get_my_meal_history(
         MealRecordResponse
     ],
 )
-def get_meal_records(
+def meal_records(
     meal_date: date | None = Query(
         default=None
     ),
@@ -375,8 +538,7 @@ def get_meal_records(
 ):
     target_date = (
         meal_date
-        if meal_date is not None
-        else get_today()
+        or today_india()
     )
 
     query = (
@@ -396,15 +558,11 @@ def get_meal_records(
     )
 
     if meal_type:
-        normalized_meal = (
-            normalize_meal_type(
-                meal_type
-            )
-        )
-
         query = query.filter(
             MealConfirmation.meal_type
-            == normalized_meal
+            == normalize_meal_type(
+                meal_type
+            )
         )
 
     rows = (
@@ -420,33 +578,18 @@ def get_meal_records(
     return [
         MealRecordResponse(
             id=confirmation.id,
-
             student_id=student.id,
-
-            student_code=(
-                student.student_code
-            ),
-
-            student_name=(
-                student.name
-            ),
-
-            meal_date=(
-                confirmation.meal_date
-            ),
-
-            meal_type=(
-                confirmation.meal_type
-            ),
-
-            status=(
-                confirmation.status
-            ),
-
-            confirmed_at=(
-                confirmation.confirmed_at
-            ),
+            student_code=student.student_code,
+            student_name=student.name,
+            meal_date=confirmation.meal_date,
+            meal_type=confirmation.meal_type,
+            status=confirmation.status,
+            confirmed_at=confirmation.confirmed_at,
         )
-        for confirmation, student
+
+        for (
+            confirmation,
+            student,
+        )
         in rows
     ]

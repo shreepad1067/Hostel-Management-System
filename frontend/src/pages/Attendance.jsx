@@ -1,665 +1,816 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import Sidebar from "../components/Sidebar";
+
 import "../components/Sidebar.css";
+
 import api from "../services/api";
 
-function Attendance() {
-  const emptyForm = {
-    student_id: "",
-    attendance_date: "",
-    status: "Present",
-    remarks: "",
-  };
 
-  const [attendance, setAttendance] = useState([]);
-  const [students, setStudents] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [showForm, setShowForm] = useState(false);
-  const [editingAttendance, setEditingAttendance] =
-    useState(null);
-
-  const [formData, setFormData] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
-
-  const getUserRole = () => {
-    try {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        return "Guest";
-      }
-
-      const payload = JSON.parse(
-        atob(token.split(".")[1])
+function roleFromToken() {
+  try {
+    const token =
+      localStorage.getItem(
+        "access_token"
       );
 
-      return payload.role || "Student";
-    } catch {
-      return "Student";
-    }
-  };
+    return JSON.parse(
+      atob(
+        token.split(".")[1]
+      )
+    ).role;
 
-  const role = getUserRole();
-  const isStudent = role === "Student";
+  } catch {
+    return null;
+  }
+}
+
+
+function todayValue() {
+  const now =
+    new Date();
+
+  const local =
+    new Date(
+      now.getTime()
+      - now.getTimezoneOffset()
+      * 60000
+    );
+
+  return local
+    .toISOString()
+    .split("T")[0];
+}
+
+
+function StudentAttendance() {
+  const [records, setRecords] =
+    useState([]);
+
+  const [error, setError] =
+    useState("");
+
 
   useEffect(() => {
-    fetchData();
+    api.get(
+      "/attendance/my-attendance"
+    )
+      .then(
+        (response) =>
+          setRecords(
+            response.data
+          )
+      )
+      .catch(
+        (error) =>
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load attendance."
+          )
+      );
   }, []);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
-    if (!err.response) {
-      return "Unable to connect to the backend.";
-    }
 
-    const detail = err.response.data?.detail;
+  return (
+    <>
+      <header className="dashboard-header">
+        <div>
+          <span className="dashboard-label">
+            STUDENT ATTENDANCE
+          </span>
 
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          const location = Array.isArray(item.loc)
-            ? item.loc[item.loc.length - 1]
-            : "field";
+          <h1>
+            My Attendance
+          </h1>
 
-          return `${location}: ${
-            item.msg || "Invalid input"
-          }`;
-        })
-        .join(", ");
-    }
+          <p>
+            View your hostel attendance.
+          </p>
+        </div>
+      </header>
 
-    if (typeof detail === "string") {
-      return detail;
-    }
 
-    return defaultMessage;
-  };
+      {error && (
+        <div className="attendance-error">
+          <p>
+            {error}
+          </p>
+        </div>
+      )}
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
 
-      if (isStudent) {
-        const response = await api.get(
-          "/attendance/my-attendance"
-        );
+      <section className="overview-card">
+        <div className="attendance-table-wrapper">
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
 
-        setAttendance(response.data || []);
-        setStudents([]);
-      } else {
-        const [
+            <tbody>
+              {records.map(
+                (record) => (
+                  <tr key={record.id}>
+                    <td>
+                      {record.attendance_date}
+                    </td>
+
+                    <td>
+                      {record.status}
+                    </td>
+
+                    <td>
+                      {record.remarks
+                        || "-"}
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+
+function AdminAttendance() {
+  const [records, setRecords] =
+    useState([]);
+
+  const [students, setStudents] =
+    useState([]);
+
+  const [error, setError] =
+    useState("");
+
+
+  useEffect(() => {
+    Promise.all([
+      api.get(
+        "/attendance/"
+      ),
+
+      api.get(
+        "/students/"
+      ),
+    ])
+      .then(
+        ([
           attendanceResponse,
-          studentsResponse,
-        ] = await Promise.all([
-          api.get("/attendance/"),
-          api.get("/students/"),
-        ]);
+          studentResponse,
+        ]) => {
+          setRecords(
+            attendanceResponse.data
+          );
 
-        setAttendance(
-          attendanceResponse.data || []
+          setStudents(
+            studentResponse.data
+          );
+        }
+      )
+      .catch(
+        (error) =>
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load attendance."
+          )
+      );
+  }, []);
+
+
+  const studentName =
+    (id) => {
+      const student =
+        students.find(
+          (item) =>
+            item.id === id
         );
 
-        setStudents(
-          studentsResponse.data || []
+      return student
+        ? student.name
+        : `Student #${id}`;
+    };
+
+
+  return (
+    <>
+      <header className="dashboard-header">
+        <div>
+          <span className="dashboard-label">
+            ADMIN MONITORING
+          </span>
+
+          <h1>
+            Attendance
+          </h1>
+
+          <p>
+            Monitor attendance recorded
+            by Wardens.
+          </p>
+        </div>
+      </header>
+
+
+      {error && (
+        <div className="attendance-error">
+          <p>
+            {error}
+          </p>
+        </div>
+      )}
+
+
+      <section className="overview-card">
+        <div className="attendance-table-wrapper">
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {records.map(
+                (record) => (
+                  <tr key={record.id}>
+                    <td>
+                      {studentName(
+                        record.student_id
+                      )}
+                    </td>
+
+                    <td>
+                      {record.attendance_date}
+                    </td>
+
+                    <td>
+                      {record.status}
+                    </td>
+
+                    <td>
+                      {record.remarks
+                        || "-"}
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+
+function WardenAttendance() {
+  const [blocks, setBlocks] =
+    useState([]);
+
+  const [block, setBlock] =
+    useState("");
+
+  const [floor, setFloor] =
+    useState("");
+
+  const [attendanceDate, setAttendanceDate] =
+    useState(
+      todayValue()
+    );
+
+  const [students, setStudents] =
+    useState([]);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+
+  useEffect(() => {
+    api.get(
+      "/attendance/blocks"
+    )
+      .then(
+        (response) => {
+          setBlocks(
+            response.data
+          );
+
+          if (
+            response.data.length
+            > 0
+          ) {
+            setBlock(
+              response.data[0].block
+            );
+          }
+        }
+      )
+      .catch(
+        (error) =>
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load blocks."
+          )
+      );
+  }, []);
+
+
+  const loadRoster =
+    useCallback(
+      async () => {
+        if (!block) {
+          return;
+        }
+
+        const params =
+          new URLSearchParams();
+
+        params.set(
+          "block",
+          block
         );
-      }
-    } catch (err) {
-      console.error(
-        "Failed to load attendance data:",
-        err
+
+        params.set(
+          "attendance_date",
+          attendanceDate
+        );
+
+        if (floor) {
+          params.set(
+            "floor",
+            floor
+          );
+        }
+
+        try {
+          const response =
+            await api.get(
+              `/attendance/roster?${params.toString()}`
+            );
+
+          setStudents(
+            response.data.map(
+              (student) => ({
+                ...student,
+
+                status:
+                  student.status
+                  || "Present",
+
+                remarks:
+                  student.remarks
+                  || "",
+              })
+            )
+          );
+
+        } catch (error) {
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load roster."
+          );
+        }
+      },
+      [
+        block,
+        floor,
+        attendanceDate,
+      ]
+    );
+
+
+  useEffect(() => {
+    loadRoster();
+  }, [loadRoster]);
+
+
+  const floors =
+    blocks.find(
+      (item) =>
+        item.block === block
+    )?.floors || [];
+
+
+  const updateStudent =
+    (
+      studentId,
+      field,
+      value
+    ) => {
+      setStudents(
+        (current) =>
+          current.map(
+            (student) =>
+              student.student_id
+              === studentId
+                ? {
+                    ...student,
+
+                    [field]:
+                      value,
+                  }
+                : student
+          )
       );
+    };
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Failed to load attendance data."
-        )
+
+  const markAllPresent =
+    () => {
+      setStudents(
+        (current) =>
+          current.map(
+            (student) => ({
+              ...student,
+
+              status:
+                "Present",
+            })
+          )
       );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const openAddForm = () => {
-    setEditingAttendance(null);
 
-    setFormData({
-      ...emptyForm,
-      attendance_date: new Date()
-        .toISOString()
-        .split("T")[0],
-    });
+  const save =
+    async () => {
+      try {
+        setError("");
+        setSuccess("");
 
-    setError("");
-    setShowForm(true);
-  };
+        const response =
+          await api.post(
+            "/attendance/bulk",
+            {
+              block,
 
-  const openEditForm = (record) => {
-    setEditingAttendance(record);
+              floor:
+                floor
+                  ? Number(floor)
+                  : null,
 
-    setFormData({
-      student_id: String(record.student_id),
-      attendance_date:
-        record.attendance_date || "",
-      status: record.status || "Present",
-      remarks: record.remarks || "",
-    });
+              attendance_date:
+                attendanceDate,
 
-    setError("");
-    setShowForm(true);
-  };
+              entries:
+                students.map(
+                  (student) => ({
+                    student_id:
+                      student.student_id,
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingAttendance(null);
-    setFormData(emptyForm);
-    setError("");
-  };
+                    status:
+                      student.status,
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+                    remarks:
+                      student.remarks
+                      || null,
+                  })
+                ),
+            }
+          );
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
+        setSuccess(
+          `${response.data.updated} attendance records saved.`
+        );
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+        await loadRoster();
 
-    try {
-      setSaving(true);
-      setError("");
-
-      if (!formData.student_id) {
-        setError("Please select a student.");
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.attendance_date) {
+      } catch (error) {
         setError(
-          "Please select the attendance date."
-        );
-        setSaving(false);
-        return;
-      }
-
-      const payload = {
-        student_id: Number(formData.student_id),
-        attendance_date:
-          formData.attendance_date,
-        status: formData.status,
-        remarks: formData.remarks || null,
-      };
-
-      if (editingAttendance) {
-        await api.put(
-          `/attendance/${editingAttendance.id}`,
-          payload
-        );
-      } else {
-        await api.post(
-          "/attendance/",
-          payload
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to save attendance."
         );
       }
+    };
 
-      await fetchData();
 
-      closeForm();
-    } catch (err) {
-      console.error(
-        "Failed to save attendance:",
-        err
-      );
+  return (
+    <>
+      <header className="dashboard-header">
+        <div>
+          <span className="dashboard-label">
+            WARDEN ATTENDANCE
+          </span>
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to save attendance record."
-        )
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+          <h1>
+            Block Attendance
+          </h1>
 
-  const handleDelete = async (record) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete attendance record #${record.id}?`
-    );
+          <p>
+            Select block, floor and date,
+            then mark attendance.
+          </p>
+        </div>
+      </header>
 
-    if (!confirmed) {
-      return;
-    }
 
-    try {
-      setError("");
+      {error && (
+        <div className="attendance-error">
+          <p>
+            {error}
+          </p>
+        </div>
+      )}
 
-      await api.delete(
-        `/attendance/${record.id}`
-      );
+      {success && (
+        <div
+          style={{
+            marginBottom:
+              "18px",
 
-      await fetchData();
-    } catch (err) {
-      console.error(
-        "Failed to delete attendance:",
-        err
-      );
+            padding:
+              "14px",
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to delete attendance record."
-        )
-      );
-    }
-  };
+            color:
+              "#067647",
 
-  const getStudentName = (studentId) => {
-    const student = students.find(
-      (item) => item.id === studentId
-    );
+            background:
+              "#ecfdf3",
 
-    return student
-      ? student.name
-      : `Student #${studentId}`;
-  };
+            borderRadius:
+              "10px",
+          }}
+        >
+          {success}
+        </div>
+      )}
 
-  const getStatusClass = (status) => {
-    const normalizedStatus = String(
-      status || ""
-    ).toLowerCase();
 
-    if (normalizedStatus === "present") {
-      return "attendance-status present";
-    }
+      <section className="overview-card">
+        <div className="attendance-form-grid">
+          <div className="form-group">
+            <label>
+              Block
+            </label>
 
-    if (normalizedStatus === "absent") {
-      return "attendance-status absent";
-    }
+            <select
+              value={block}
+              onChange={
+                (event) => {
+                  setBlock(
+                    event.target.value
+                  );
 
-    return "attendance-status pending";
-  };
+                  setFloor("");
+                }
+              }
+            >
+              {blocks.map(
+                (item) => (
+                  <option
+                    key={
+                      item.block
+                    }
+                    value={
+                      item.block
+                    }
+                  >
+                    {item.block}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
 
-  const getDayName = (date) => {
-    if (!date) {
-      return "--";
-    }
+          <div className="form-group">
+            <label>
+              Floor
+            </label>
 
-    const parsedDate = new Date(
-      `${date}T00:00:00`
-    );
+            <select
+              value={floor}
+              onChange={
+                (event) =>
+                  setFloor(
+                    event.target.value
+                  )
+              }
+            >
+              <option value="">
+                All Floors
+              </option>
 
-    if (
-      Number.isNaN(parsedDate.getTime())
-    ) {
-      return "--";
-    }
+              {floors.map(
+                (item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    Floor {item}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
 
-    return parsedDate.toLocaleDateString(
-      "en-IN",
-      {
-        weekday: "long",
-      }
-    );
-  };
+          <div className="form-group">
+            <label>
+              Date
+            </label>
+
+            <input
+              type="date"
+              value={
+                attendanceDate
+              }
+              onChange={
+                (event) =>
+                  setAttendanceDate(
+                    event.target.value
+                  )
+              }
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            display:
+              "flex",
+
+            gap:
+              "12px",
+
+            marginTop:
+              "18px",
+          }}
+        >
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={
+              markAllPresent
+            }
+          >
+            Mark All Present
+          </button>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={save}
+          >
+            Save Attendance
+          </button>
+        </div>
+      </section>
+
+
+      <section
+        className="overview-card"
+        style={{
+          marginTop:
+            "22px",
+        }}
+      >
+        <div className="attendance-table-wrapper">
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Student</th>
+                <th>Room</th>
+                <th>Floor</th>
+                <th>Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {students.map(
+                (student) => (
+                  <tr
+                    key={
+                      student.student_id
+                    }
+                  >
+                    <td>
+                      {student.student_code
+                        || student.student_id}
+                    </td>
+
+                    <td>
+                      {student.student_name}
+                    </td>
+
+                    <td>
+                      {student.room_number
+                        || "-"}
+                    </td>
+
+                    <td>
+                      {student.floor}
+                    </td>
+
+                    <td>
+                      <select
+                        value={
+                          student.status
+                        }
+                        onChange={
+                          (event) =>
+                            updateStudent(
+                              student.student_id,
+                              "status",
+                              event.target.value
+                            )
+                        }
+                      >
+                        <option>
+                          Present
+                        </option>
+
+                        <option>
+                          Absent
+                        </option>
+
+                        <option>
+                          Leave
+                        </option>
+                      </select>
+                    </td>
+
+                    <td>
+                      <input
+                        value={
+                          student.remarks
+                        }
+                        onChange={
+                          (event) =>
+                            updateStudent(
+                              student.student_id,
+                              "remarks",
+                              event.target.value
+                            )
+                        }
+                      />
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+
+function Attendance() {
+  const role =
+    roleFromToken();
 
   return (
     <div className="dashboard-layout">
       <Sidebar />
 
       <main className="dashboard-main">
-        <header className="dashboard-header">
-          <div>
-            <span className="dashboard-label">
-              {isStudent
-                ? "STUDENT"
-                : "MANAGEMENT"}
-            </span>
-
-            <h1>Attendance</h1>
-
-            <p>
-              {isStudent
-                ? "View your hostel attendance records and daily attendance status."
-                : "Manage student hostel attendance records and daily attendance status."}
-            </p>
-          </div>
-
-          <div className="dashboard-date">
-            <span>
-              {isStudent
-                ? "My Records"
-                : "Total Records"}
-            </span>
-
-            <strong>
-              {attendance.length}
-            </strong>
-          </div>
-        </header>
-
-        {error && (
-          <div className="attendance-error">
-            <p>{error}</p>
-          </div>
+        {role === "Student" && (
+          <StudentAttendance />
         )}
 
-        <section className="overview-card attendance-management-card">
-          <div className="overview-header">
-            <div>
-              <h2>
-                {isStudent
-                  ? "My Attendance"
-                  : "Attendance Records"}
-              </h2>
+        {role === "Admin" && (
+          <AdminAttendance />
+        )}
 
-              <p>
-                {isStudent
-                  ? "Your attendance records and daily attendance information."
-                  : "Add, update and manage student attendance."}
-              </p>
-            </div>
-
-            {!isStudent && (
-              <button
-                type="button"
-                className="primary-button"
-                onClick={
-                  showForm
-                    ? closeForm
-                    : openAddForm
-                }
-              >
-                {showForm
-                  ? "Close Form"
-                  : "+ Mark Attendance"}
-              </button>
-            )}
-          </div>
-
-          {!isStudent && showForm && (
-            <form
-              className="attendance-form"
-              onSubmit={handleSubmit}
-            >
-              <div className="attendance-form-title">
-                <div>
-                  <h3>
-                    {editingAttendance
-                      ? "Edit Attendance"
-                      : "Mark Attendance"}
-                  </h3>
-
-                  <p>
-                    Enter the student's daily
-                    attendance information.
-                  </p>
-                </div>
-              </div>
-
-              <div className="attendance-form-grid">
-                <div className="form-group">
-                  <label htmlFor="student_id">
-                    Student
-                  </label>
-
-                  <select
-                    id="student_id"
-                    name="student_id"
-                    value={
-                      formData.student_id
-                    }
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">
-                      Select student
-                    </option>
-
-                    {students.map((student) => (
-                      <option
-                        key={student.id}
-                        value={student.id}
-                      >
-                        {student.name} — ID{" "}
-                        {student.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="attendance_date">
-                    Attendance Date
-                  </label>
-
-                  <input
-                    id="attendance_date"
-                    name="attendance_date"
-                    type="date"
-                    value={
-                      formData.attendance_date
-                    }
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="status">
-                    Status
-                  </label>
-
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                  >
-                    <option value="Present">
-                      Present
-                    </option>
-
-                    <option value="Absent">
-                      Absent
-                    </option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="remarks">
-                    Remarks
-                  </label>
-
-                  <input
-                    id="remarks"
-                    name="remarks"
-                    type="text"
-                    placeholder="Enter remarks"
-                    value={formData.remarks}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="attendance-form-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={closeForm}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={saving}
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingAttendance
-                    ? "Update Attendance"
-                    : "Mark Attendance"}
-                </button>
-              </div>
-            </form>
-          )}
-        </section>
-
-        {loading ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ✓
-              </div>
-
-              <h3>
-                Loading Attendance Records...
-              </h3>
-
-              <p>
-                Please wait while attendance
-                records are loaded.
-              </p>
-            </div>
-          </section>
-        ) : attendance.length === 0 ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ✓
-              </div>
-
-              <h3>
-                {isStudent
-                  ? "No Attendance Records Found"
-                  : "No Attendance Records Found"}
-              </h3>
-
-              <p>
-                {isStudent
-                  ? "You currently have no attendance records."
-                  : "There are currently no attendance records."}
-              </p>
-            </div>
-          </section>
-        ) : (
-          <section className="overview-card">
-            <div className="attendance-table-card">
-              <div className="attendance-table-wrapper">
-                <table className="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-
-                      {!isStudent && (
-                        <th>Student</th>
-                      )}
-
-                      <th>Date</th>
-                      <th>Day</th>
-                      <th>Status</th>
-                      <th>Remarks</th>
-
-                      {!isStudent && (
-                        <th>Actions</th>
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {attendance.map(
-                      (record) => (
-                        <tr key={record.id}>
-                          <td>
-                            {record.id}
-                          </td>
-
-                          {!isStudent && (
-                            <td className="student-name">
-                              {getStudentName(
-                                record.student_id
-                              )}
-                            </td>
-                          )}
-
-                          <td>
-                            {
-                              record.attendance_date
-                            }
-                          </td>
-
-                          <td>
-                            {getDayName(
-                              record.attendance_date
-                            )}
-                          </td>
-
-                          <td>
-                            <span
-                              className={getStatusClass(
-                                record.status
-                              )}
-                            >
-                              {record.status}
-                            </span>
-                          </td>
-
-                          <td>
-                            {record.remarks ||
-                              "-"}
-                          </td>
-
-                          {!isStudent && (
-                            <td>
-                              <div className="attendance-actions">
-                                <button
-                                  type="button"
-                                  className="attendance-action-button edit"
-                                  onClick={() =>
-                                    openEditForm(
-                                      record
-                                    )
-                                  }
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="attendance-action-button delete"
-                                  onClick={() =>
-                                    handleDelete(
-                                      record
-                                    )
-                                  }
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+        {role === "Warden" && (
+          <WardenAttendance />
         )}
       </main>
     </div>
   );
 }
+
 
 export default Attendance;

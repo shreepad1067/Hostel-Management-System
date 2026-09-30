@@ -2,9 +2,9 @@ import React from "react";
 
 import {
   BrowserRouter,
-  Routes,
-  Route,
   Navigate,
+  Route,
+  Routes,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -13,22 +13,29 @@ import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import Rooms from "./pages/Rooms";
 import RoomAllocation from "./pages/RoomAllocation";
-import Fees from "./pages/Fees";
 
-import MyRoom from "./pages/MyRoom";
+import Fees from "./pages/Fees";
 import MyFees from "./pages/MyFees";
+import MyRoom from "./pages/MyRoom";
 
 import MealTracking from "./pages/MealTracking";
 import FoodMenu from "./pages/FoodMenu";
-import SOS from "./pages/SOS";
-import AIHub from "./pages/AIHub";
-import AccountManagement from "./pages/AccountManagement";
+import FoodFeedback from "./pages/FoodFeedback";
 
 import Attendance from "./pages/Attendance";
+
 import Complaints from "./pages/Complaints";
 import Leave from "./pages/Leave";
 import Visitors from "./pages/Visitors";
 import Notices from "./pages/Notices";
+
+import WebsiteFeedback from "./pages/WebsiteFeedback";
+import AboutHostel from "./pages/AboutHostel";
+
+import SOS from "./pages/SOS";
+import AIHub from "./pages/AIHub";
+
+import AccountManagement from "./pages/AccountManagement";
 
 
 function getUserRole() {
@@ -42,14 +49,11 @@ function getUserRole() {
       return null;
     }
 
-    const payload =
-      JSON.parse(
-        atob(
-          token.split(".")[1]
-        )
-      );
-
-    return payload.role || null;
+    return JSON.parse(
+      atob(
+        token.split(".")[1]
+      )
+    ).role;
 
   } catch {
     return null;
@@ -79,7 +83,9 @@ function ProtectedRoute({
   }
 
   if (
-    !allowedRoles.includes(role)
+    !allowedRoles.includes(
+      role
+    )
   ) {
     return (
       <Navigate
@@ -93,15 +99,23 @@ function ProtectedRoute({
 }
 
 
+const ALL_ROLES = [
+  "Admin",
+  "Warden",
+  "Student",
+];
+
+
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
 
         <Route
           path="/"
-          element={<Login />}
+          element={
+            <Login />
+          }
         />
 
 
@@ -120,11 +134,9 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Dashboard />
             </ProtectedRoute>
@@ -238,11 +250,9 @@ function App() {
           path="/meal-tracking"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <MealTracking />
             </ProtectedRoute>
@@ -254,10 +264,9 @@ function App() {
           path="/food-menu"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <FoodMenu />
             </ProtectedRoute>
@@ -266,32 +275,14 @@ function App() {
 
 
         <Route
-          path="/sos"
+          path="/food-feedback"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
-              <SOS />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/ai"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
-            >
-              <AIHub />
+              <FoodFeedback />
             </ProtectedRoute>
           }
         />
@@ -301,11 +292,9 @@ function App() {
           path="/attendance"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Attendance />
             </ProtectedRoute>
@@ -317,11 +306,9 @@ function App() {
           path="/complaints"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Complaints />
             </ProtectedRoute>
@@ -333,11 +320,9 @@ function App() {
           path="/leave"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Leave />
             </ProtectedRoute>
@@ -349,11 +334,9 @@ function App() {
           path="/visitors"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Visitors />
             </ProtectedRoute>
@@ -365,13 +348,68 @@ function App() {
           path="/notices"
           element={
             <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <Notices />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/website-feedback"
+          element={
+            <ProtectedRoute
               allowedRoles={[
                 "Admin",
-                "Warden",
                 "Student",
               ]}
             >
-              <Notices />
+              <WebsiteFeedback />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/about-hostel"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <AboutHostel />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/sos"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <SOS />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <AIHub />
             </ProtectedRoute>
           }
         />
@@ -388,7 +426,6 @@ function App() {
         />
 
       </Routes>
-
     </BrowserRouter>
   );
 }

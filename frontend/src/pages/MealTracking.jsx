@@ -1,10 +1,20 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
+import {
+  Html5Qrcode,
+} from "html5-qrcode";
+
+import {
+  QRCodeSVG,
+} from "qrcode.react";
+
 import Sidebar from "../components/Sidebar";
+
 import "../components/Sidebar.css";
 import "./MealTracking.css";
 
@@ -15,26 +25,18 @@ const MEALS = [
   {
     name: "Breakfast",
     icon: "☀",
-    description:
-      "Confirm that you had today's breakfast.",
   },
   {
     name: "Lunch",
     icon: "🍚",
-    description:
-      "Confirm that you had today's lunch.",
   },
   {
     name: "Snacks",
     icon: "☕",
-    description:
-      "Confirm that you had today's snacks.",
   },
   {
     name: "Dinner",
     icon: "🌙",
-    description:
-      "Confirm that you had today's dinner.",
   },
 ];
 
@@ -42,114 +44,89 @@ const MEALS = [
 function getRole() {
   try {
     const token =
-      localStorage.getItem("access_token");
+      localStorage.getItem(
+        "access_token"
+      );
 
     if (!token) {
       return null;
     }
 
-    const payload = JSON.parse(
-      atob(token.split(".")[1])
-    );
+    return JSON.parse(
+      atob(
+        token.split(".")[1]
+      )
+    ).role;
 
-    return payload.role || null;
   } catch {
     return null;
   }
 }
 
 
-function getLocalDateInput() {
+function localDate() {
   const now = new Date();
 
-  const local = new Date(
+  const date = new Date(
     now.getTime()
-      - now.getTimezoneOffset() * 60000
+    - now.getTimezoneOffset()
+    * 60000
   );
 
-  return local
+  return date
     .toISOString()
     .split("T")[0];
 }
 
 
-function getErrorMessage(
+function errorText(
   error,
-  defaultMessage
+  fallback
 ) {
-  if (!error.response) {
-    return "Unable to connect to the backend.";
-  }
-
-  const detail =
-    error.response.data?.detail;
-
-  if (typeof detail === "string") {
-    return detail;
-  }
-
-  if (Array.isArray(detail)) {
-    return detail
-      .map(
-        (item) =>
-          item.msg || "Validation error"
-      )
-      .join(", ");
-  }
-
-  return defaultMessage;
-}
-
-
-function formatTime(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  return date.toLocaleTimeString(
-    "en-IN",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    }
+  return (
+    error.response
+      ?.data
+      ?.detail
+    || fallback
   );
 }
 
 
-function formatDate(value) {
+function timeText(value) {
   if (!value) {
     return "-";
   }
 
-  const date = new Date(
-    `${value}T00:00:00`
-  );
-
-  return date.toLocaleDateString(
+  return new Date(
+    value
+  ).toLocaleTimeString(
     "en-IN",
     {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
     }
   );
 }
 
 
 function StudentMealView() {
+  const scannerRef =
+    useRef(null);
+
+  const scanLock =
+    useRef(false);
+
   const [todayRecords, setTodayRecords] =
     useState([]);
 
   const [history, setHistory] =
     useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [confirming, setConfirming] =
-    useState("");
+  const [scanning, setScanning] =
+    useState(false);
 
   const [error, setError] =
     useState("");
@@ -158,88 +135,180 @@ function StudentMealView() {
     useState("");
 
 
-  const loadMeals = useCallback(
-    async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const load =
+    useCallback(
+      async () => {
+        try {
+          const [
+            todayResponse,
+            historyResponse,
+          ] = await Promise.all([
+            api.get(
+              "/meals/my-today"
+            ),
 
-        const [
-          todayResponse,
-          historyResponse,
-        ] = await Promise.all([
-          api.get("/meals/my-today"),
-          api.get(
-            "/meals/my-history?limit=30"
-          ),
-        ]);
+            api.get(
+              "/meals/my-history?limit=50"
+            ),
+          ]);
 
-        setTodayRecords(
-          todayResponse.data
-        );
+          setTodayRecords(
+            todayResponse.data
+          );
 
-        setHistory(
-          historyResponse.data
-        );
-      } catch (error) {
-        setError(
-          getErrorMessage(
-            error,
-            "Unable to load meal records."
-          )
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+          setHistory(
+            historyResponse.data
+          );
+
+        } catch (error) {
+          setError(
+            errorText(
+              error,
+              "Unable to load meal records."
+            )
+          );
+        }
+      },
+      []
+    );
 
 
   useEffect(() => {
-    loadMeals();
-  }, [loadMeals]);
+    load();
+
+    return () => {
+      if (
+        scannerRef.current
+      ) {
+        scannerRef.current
+          .stop()
+          .catch(() => {});
+      }
+    };
+  }, [load]);
 
 
-  const confirmMeal =
-    async (mealType) => {
+  const submitQR =
+    async (token) => {
       try {
-        setConfirming(mealType);
         setError("");
         setSuccess("");
 
         await api.post(
-          "/meals/confirm",
+          "/meals/scan",
           {
-            meal_type: mealType,
+            qr_token:
+              token,
           }
         );
 
         setSuccess(
-          `${mealType} confirmed successfully.`
+          "Meal collected successfully."
         );
 
-        await loadMeals();
+        await load();
+
       } catch (error) {
         setError(
-          getErrorMessage(
+          errorText(
             error,
             "Unable to confirm meal."
           )
         );
+
       } finally {
-        setConfirming("");
+        scanLock.current = false;
       }
     };
 
 
-  const confirmedMealNames =
-    new Set(
-      todayRecords.map(
-        (record) =>
-          record.meal_type
-      )
-    );
+  const startScanner =
+    async () => {
+      try {
+        setError("");
+        setSuccess("");
+
+        scanLock.current = false;
+
+        const scanner =
+          new Html5Qrcode(
+            "meal-qr-reader"
+          );
+
+        scannerRef.current =
+          scanner;
+
+        setScanning(true);
+
+        await scanner.start(
+          {
+            facingMode:
+              "environment",
+          },
+
+          {
+            fps: 10,
+
+            qrbox: {
+              width: 240,
+              height: 240,
+            },
+          },
+
+          async (
+            decodedText
+          ) => {
+            if (
+              scanLock.current
+            ) {
+              return;
+            }
+
+            scanLock.current = true;
+
+            try {
+              await scanner.stop();
+
+            } catch {
+              // Ignore scanner stop errors.
+            }
+
+            setScanning(false);
+
+            await submitQR(
+              decodedText
+            );
+          },
+
+          () => {}
+        );
+
+      } catch {
+        setScanning(false);
+
+        setError(
+          "Unable to open camera. Allow camera permission and try again."
+        );
+      }
+    };
+
+
+  const stopScanner =
+    async () => {
+      try {
+        if (
+          scannerRef.current
+        ) {
+          await scannerRef.current
+            .stop();
+        }
+
+      } catch {
+        // Ignore scanner stop errors.
+      }
+
+      setScanning(false);
+    };
 
 
   return (
@@ -247,27 +316,30 @@ function StudentMealView() {
       <header className="dashboard-header">
         <div>
           <span className="dashboard-label">
-            STUDENT MEALS
+            STUDENT DINING
           </span>
 
-          <h1>Meal Tracking</h1>
+          <h1>
+            Meal Tracking
+          </h1>
 
           <p>
-            Confirm your hostel meals for today.
+            Scan the Warden's meal QR
+            when collecting your food.
           </p>
         </div>
 
         <div className="dashboard-date">
-          <span>TODAY</span>
+          <span>
+            TODAY
+          </span>
 
           <strong>
-            {
-              confirmedMealNames.size
-            }
-            /4
+            {todayRecords.length}/4
           </strong>
         </div>
       </header>
+
 
       {error && (
         <div className="meal-message error">
@@ -281,25 +353,80 @@ function StudentMealView() {
         </div>
       )}
 
+
       <section className="overview-card">
         <div className="meal-section-heading">
           <div>
-            <h2>Today's Meals</h2>
+            <h2>
+              Scan Dining QR
+            </h2>
 
             <p>
-              Confirm each meal after you
-              have taken it.
+              QR codes expire automatically
+              after a short time.
             </p>
           </div>
         </div>
 
-        {loading ? (
-          <div className="meal-loading">
-            Loading today's meals...
-          </div>
-        ) : (
-          <div className="meal-card-grid">
-            {MEALS.map((meal) => {
+        <div
+          id="meal-qr-reader"
+          style={{
+            maxWidth:
+              "450px",
+
+            margin:
+              "22px auto",
+          }}
+        />
+
+        <div
+          style={{
+            display:
+              "flex",
+
+            justifyContent:
+              "center",
+
+            gap:
+              "12px",
+          }}
+        >
+          {!scanning ? (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={
+                startScanner
+              }
+            >
+              Start QR Scanner
+            </button>
+
+          ) : (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={
+                stopScanner
+              }
+            >
+              Stop Scanner
+            </button>
+          )}
+        </div>
+      </section>
+
+
+      <section
+        className="overview-card"
+        style={{
+          marginTop:
+            "22px",
+        }}
+      >
+        <div className="meal-card-grid">
+          {MEALS.map(
+            (meal) => {
               const record =
                 todayRecords.find(
                   (item) =>
@@ -307,14 +434,13 @@ function StudentMealView() {
                     === meal.name
                 );
 
-              const confirmed =
-                Boolean(record);
-
               return (
                 <article
-                  key={meal.name}
+                  key={
+                    meal.name
+                  }
                   className={
-                    confirmed
+                    record
                       ? "meal-card confirmed"
                       : "meal-card"
                   }
@@ -327,74 +453,41 @@ function StudentMealView() {
                     {meal.name}
                   </h3>
 
-                  <p>
-                    {meal.description}
-                  </p>
-
-                  {confirmed ? (
+                  {record ? (
                     <>
                       <div className="meal-confirmed-label">
-                        ✓ Confirmed
+                        ✓ Collected
                       </div>
 
                       <small>
-                        Confirmed at{" "}
-                        {
-                          formatTime(
-                            record
-                              .confirmed_at
-                          )
-                        }
+                        {timeText(
+                          record.confirmed_at
+                        )}
                       </small>
                     </>
                   ) : (
-                    <button
-                      type="button"
-                      className="meal-confirm-button"
-                      disabled={
-                        Boolean(
-                          confirming
-                        )
-                      }
-                      onClick={() =>
-                        confirmMeal(
-                          meal.name
-                        )
-                      }
-                    >
-                      {
-                        confirming
-                        === meal.name
-                          ? "Confirming..."
-                          : `Confirm ${meal.name}`
-                      }
-                    </button>
+                    <p>
+                      Not collected.
+                    </p>
                   )}
                 </article>
               );
-            })}
-          </div>
-        )}
+            }
+          )}
+        </div>
       </section>
 
-      <section className="overview-card meal-history-section">
-        <div className="meal-section-heading">
-          <div>
-            <h2>
-              Recent Meal History
-            </h2>
 
-            <p>
-              Your recent confirmed
-              hostel meals.
-            </p>
-          </div>
-        </div>
+      <section className="overview-card meal-history-section">
+        <h2>
+          Meal History
+        </h2>
 
         {history.length === 0 ? (
           <div className="meal-empty">
-            No meal confirmations yet.
+            No meal history yet.
           </div>
+
         ) : (
           <div className="meal-table-wrapper">
             <table className="meal-table">
@@ -403,9 +496,7 @@ function StudentMealView() {
                   <th>Date</th>
                   <th>Meal</th>
                   <th>Status</th>
-                  <th>
-                    Confirmed At
-                  </th>
+                  <th>Time</th>
                 </tr>
               </thead>
 
@@ -414,37 +505,21 @@ function StudentMealView() {
                   (record) => (
                     <tr key={record.id}>
                       <td>
-                        {
-                          formatDate(
-                            record
-                              .meal_date
-                          )
-                        }
+                        {record.meal_date}
                       </td>
 
                       <td>
-                        {
-                          record
-                            .meal_type
-                        }
+                        {record.meal_type}
                       </td>
 
                       <td>
-                        <span className="meal-status">
-                          {
-                            record
-                              .status
-                          }
-                        </span>
+                        {record.status}
                       </td>
 
                       <td>
-                        {
-                          formatTime(
-                            record
-                              .confirmed_at
-                          )
-                        }
+                        {timeText(
+                          record.confirmed_at
+                        )}
                       </td>
                     </tr>
                   )
@@ -459,70 +534,77 @@ function StudentMealView() {
 }
 
 
-function ManagementMealView() {
+function ManagementMealView({
+  role,
+}) {
   const [records, setRecords] =
     useState([]);
 
   const [selectedDate, setSelectedDate] =
     useState(
-      getLocalDateInput()
+      localDate()
     );
 
   const [selectedMeal, setSelectedMeal] =
     useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [qrMeal, setQrMeal] =
+    useState("Breakfast");
+
+  const [qrData, setQrData] =
+    useState(null);
+
+  const [remaining, setRemaining] =
+    useState(0);
 
   const [error, setError] =
     useState("");
 
 
   const loadRecords =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError("");
+    useCallback(
+      async () => {
+        try {
+          setError("");
 
-        const params =
-          new URLSearchParams();
+          const params =
+            new URLSearchParams();
 
-        if (selectedDate) {
-          params.append(
+          params.set(
             "meal_date",
             selectedDate
           );
-        }
 
-        if (selectedMeal) {
-          params.append(
-            "meal_type",
-            selectedMeal
+          if (selectedMeal) {
+            params.set(
+              "meal_type",
+              selectedMeal
+            );
+          }
+
+          const response =
+            await api.get(
+              `/meals/records?${params.toString()}`
+            );
+
+          setRecords(
+            response.data
+          );
+
+        } catch (error) {
+          setError(
+            errorText(
+              error,
+              "Unable to load meal records."
+            )
           );
         }
-
-        const response =
-          await api.get(
-            `/meals/records?${params.toString()}`
-          );
-
-        setRecords(
-          response.data
-        );
-      } catch (error) {
-        setError(
-          getErrorMessage(
-            error,
-            "Unable to load meal records."
-          )
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, [
-      selectedDate,
-      selectedMeal,
-    ]);
+      },
+      [
+        selectedDate,
+        selectedMeal,
+      ]
+    );
 
 
   useEffect(() => {
@@ -530,13 +612,72 @@ function ManagementMealView() {
   }, [loadRecords]);
 
 
-  const countForMeal =
-    (mealType) => {
-      return records.filter(
-        (record) =>
-          record.meal_type
-          === mealType
-      ).length;
+  useEffect(() => {
+    if (
+      !qrData
+      || remaining <= 0
+    ) {
+      return;
+    }
+
+    const timer =
+      setInterval(
+        () => {
+          setRemaining(
+            (value) =>
+              Math.max(
+                0,
+                value - 1
+              )
+          );
+        },
+        1000
+      );
+
+    return () =>
+      clearInterval(
+        timer
+      );
+
+  }, [
+    qrData,
+    remaining,
+  ]);
+
+
+  const generateQR =
+    async () => {
+      try {
+        setError("");
+
+        const response =
+          await api.post(
+            "/meals/qr/generate",
+            {
+              meal_type:
+                qrMeal,
+
+              duration_seconds:
+                90,
+            }
+          );
+
+        setQrData(
+          response.data
+        );
+
+        setRemaining(
+          90
+        );
+
+      } catch (error) {
+        setError(
+          errorText(
+            error,
+            "Unable to generate meal QR."
+          )
+        );
+      }
     };
 
 
@@ -545,20 +686,24 @@ function ManagementMealView() {
       <header className="dashboard-header">
         <div>
           <span className="dashboard-label">
-            MANAGEMENT
+            {role === "Warden"
+              ? "WARDEN DINING"
+              : "ADMIN MONITORING"}
           </span>
 
-          <h1>Meal Tracking</h1>
+          <h1>
+            Meal Tracking
+          </h1>
 
           <p>
-            View student meal
-            confirmations and daily records.
+            Monitor student meal
+            collections.
           </p>
         </div>
 
         <div className="dashboard-date">
           <span>
-            CONFIRMATIONS
+            RECORDS
           </span>
 
           <strong>
@@ -567,57 +712,182 @@ function ManagementMealView() {
         </div>
       </header>
 
+
       {error && (
         <div className="meal-message error">
           {error}
         </div>
       )}
 
-      <section className="overview-card">
-        <div className="meal-section-heading">
-          <div>
-            <h2>
-              Meal Records
-            </h2>
 
-            <p>
-              Filter student meal
-              confirmations by date
-              and meal type.
-            </p>
+      {role === "Warden" && (
+        <section className="overview-card">
+          <h2>
+            Generate Meal QR
+          </h2>
+
+          <p>
+            Generate a 90-second QR
+            for the meal currently
+            being served.
+          </p>
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              gap:
+                "12px",
+
+              flexWrap:
+                "wrap",
+
+              marginTop:
+                "18px",
+            }}
+          >
+            <select
+              value={
+                qrMeal
+              }
+              onChange={
+                (event) =>
+                  setQrMeal(
+                    event.target.value
+                  )
+              }
+            >
+              {MEALS.map(
+                (meal) => (
+                  <option
+                    key={
+                      meal.name
+                    }
+                    value={
+                      meal.name
+                    }
+                  >
+                    {meal.name}
+                  </option>
+                )
+              )}
+            </select>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={
+                generateQR
+              }
+            >
+              Generate QR
+            </button>
           </div>
-        </div>
 
+
+          {qrData && (
+            <div
+              style={{
+                width:
+                  "fit-content",
+
+                margin:
+                  "28px auto 0",
+
+                padding:
+                  "24px",
+
+                background:
+                  "#ffffff",
+
+                border:
+                  "1px solid #e2e8f0",
+
+                borderRadius:
+                  "18px",
+
+                textAlign:
+                  "center",
+              }}
+            >
+              <QRCodeSVG
+                value={
+                  qrData.qr_token
+                }
+                size={260}
+                level="H"
+              />
+
+              <h3>
+                {qrData.meal_type}
+              </h3>
+
+              {remaining > 0 ? (
+                <p>
+                  Expires in{" "}
+                  <strong>
+                    {remaining}s
+                  </strong>
+                </p>
+
+              ) : (
+                <p
+                  style={{
+                    color:
+                      "#b42318",
+                  }}
+                >
+                  QR expired.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+
+      <section
+        className="overview-card"
+        style={{
+          marginTop:
+            "22px",
+        }}
+      >
         <div className="meal-filter-row">
           <div className="meal-filter">
-            <label htmlFor="meal-date">
+            <label>
               Date
             </label>
 
             <input
-              id="meal-date"
               type="date"
-              value={selectedDate}
-              onChange={(event) =>
-                setSelectedDate(
-                  event.target.value
-                )
+              value={
+                selectedDate
+              }
+              onChange={
+                (event) =>
+                  setSelectedDate(
+                    event.target.value
+                  )
               }
             />
           </div>
 
           <div className="meal-filter">
-            <label htmlFor="meal-type">
-              Meal Type
+            <label>
+              Meal
             </label>
 
             <select
-              id="meal-type"
-              value={selectedMeal}
-              onChange={(event) =>
-                setSelectedMeal(
-                  event.target.value
-                )
+              value={
+                selectedMeal
+              }
+              onChange={
+                (event) =>
+                  setSelectedMeal(
+                    event.target.value
+                  )
               }
             >
               <option value="">
@@ -627,8 +897,12 @@ function ManagementMealView() {
               {MEALS.map(
                 (meal) => (
                   <option
-                    key={meal.name}
-                    value={meal.name}
+                    key={
+                      meal.name
+                    }
+                    value={
+                      meal.name
+                    }
                   >
                     {meal.name}
                   </option>
@@ -637,75 +911,26 @@ function ManagementMealView() {
             </select>
           </div>
         </div>
-
-        <div className="meal-summary-grid">
-          {MEALS.map(
-            (meal) => (
-              <div
-                key={meal.name}
-                className="meal-summary-card"
-              >
-                <span>
-                  {meal.icon}
-                </span>
-
-                <div>
-                  <strong>
-                    {
-                      countForMeal(
-                        meal.name
-                      )
-                    }
-                  </strong>
-
-                  <p>
-                    {meal.name}
-                  </p>
-                </div>
-              </div>
-            )
-          )}
-        </div>
       </section>
 
+
       <section className="overview-card meal-history-section">
-        {loading ? (
-          <div className="meal-loading">
-            Loading meal records...
-          </div>
-        ) : records.length === 0 ? (
+        {records.length === 0 ? (
           <div className="meal-empty">
-            No meal confirmations
-            were found for this filter.
+            No records found.
           </div>
+
         ) : (
           <div className="meal-table-wrapper">
             <table className="meal-table">
               <thead>
                 <tr>
-                  <th>
-                    Student ID
-                  </th>
-
-                  <th>
-                    Student
-                  </th>
-
-                  <th>
-                    Date
-                  </th>
-
-                  <th>
-                    Meal
-                  </th>
-
-                  <th>
-                    Status
-                  </th>
-
-                  <th>
-                    Confirmed At
-                  </th>
+                  <th>Student ID</th>
+                  <th>Student</th>
+                  <th>Date</th>
+                  <th>Meal</th>
+                  <th>Status</th>
+                  <th>Time</th>
                 </tr>
               </thead>
 
@@ -714,53 +939,30 @@ function ManagementMealView() {
                   (record) => (
                     <tr key={record.id}>
                       <td>
-                        {
-                          record
-                            .student_code
-                          ||
-                          `#${record.student_id}`
-                        }
+                        {record.student_code
+                          || record.student_id}
                       </td>
 
                       <td>
-                        {
-                          record
-                            .student_name
-                        }
+                        {record.student_name}
                       </td>
 
                       <td>
-                        {
-                          formatDate(
-                            record
-                              .meal_date
-                          )
-                        }
+                        {record.meal_date}
                       </td>
 
                       <td>
-                        {
-                          record
-                            .meal_type
-                        }
+                        {record.meal_type}
                       </td>
 
                       <td>
-                        <span className="meal-status">
-                          {
-                            record
-                              .status
-                          }
-                        </span>
+                        {record.status}
                       </td>
 
                       <td>
-                        {
-                          formatTime(
-                            record
-                              .confirmed_at
-                          )
-                        }
+                        {timeText(
+                          record.confirmed_at
+                        )}
                       </td>
                     </tr>
                   )
@@ -776,7 +978,8 @@ function ManagementMealView() {
 
 
 function MealTracking() {
-  const role = getRole();
+  const role =
+    getRole();
 
   return (
     <div className="dashboard-layout">
@@ -785,8 +988,11 @@ function MealTracking() {
       <main className="dashboard-main">
         {role === "Student" ? (
           <StudentMealView />
+
         ) : (
-          <ManagementMealView />
+          <ManagementMealView
+            role={role}
+          />
         )}
       </main>
     </div>

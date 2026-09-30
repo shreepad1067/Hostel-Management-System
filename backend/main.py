@@ -5,26 +5,31 @@ from fastapi.middleware.cors import (
 )
 
 from routers import (
-    student,
-    room,
-    allocation,
-    fee,
-    attendance,
-    complaint,
-    leave,
-    visitor,
-    notice,
-    auth,
-    meal_confirmation,
-    food_menu,
-    sos_alert,
-    ai,
     account_management,
+    ai,
+    allocation,
+    attendance,
+    auth,
+    complaint,
+    fee,
+    food_feedback,
+    food_menu,
+    hostel_profile,
+    leave,
+    meal_confirmation,
+    notice,
+    room,
+    sos_alert,
+    student,
+    visitor,
+    website_feedback,
 )
 
 
 app = FastAPI(
-    title="Hostel Management System API"
+    title=(
+        "Hostel Management System API"
+    )
 )
 
 
@@ -44,16 +49,45 @@ app.add_middleware(
 )
 
 
-app.include_router(student.router)
-app.include_router(room.router)
-app.include_router(allocation.router)
-app.include_router(fee.router)
-app.include_router(attendance.router)
-app.include_router(complaint.router)
-app.include_router(leave.router)
-app.include_router(visitor.router)
-app.include_router(notice.router)
-app.include_router(auth.router)
+app.include_router(
+    student.router
+)
+
+app.include_router(
+    room.router
+)
+
+app.include_router(
+    allocation.router
+)
+
+app.include_router(
+    fee.router
+)
+
+app.include_router(
+    attendance.router
+)
+
+app.include_router(
+    complaint.router
+)
+
+app.include_router(
+    leave.router
+)
+
+app.include_router(
+    visitor.router
+)
+
+app.include_router(
+    notice.router
+)
+
+app.include_router(
+    auth.router
+)
 
 app.include_router(
     meal_confirmation.router
@@ -61,6 +95,18 @@ app.include_router(
 
 app.include_router(
     food_menu.router
+)
+
+app.include_router(
+    food_feedback.router
+)
+
+app.include_router(
+    website_feedback.router
+)
+
+app.include_router(
+    hostel_profile.router
 )
 
 app.include_router(

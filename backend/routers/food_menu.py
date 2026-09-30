@@ -19,8 +19,8 @@ from models.user import User
 
 from schemas.food_menu import (
     FoodMenuCreate,
-    FoodMenuUpdate,
     FoodMenuResponse,
+    FoodMenuUpdate,
 )
 
 
@@ -71,61 +71,53 @@ MEAL_ORDER = {
 
 
 def normalize_day(
-    day: str,
+    value: str,
 ) -> str:
-    normalized = (
-        day
-        .strip()
-        .title()
+    result = (
+        value.strip().title()
     )
 
-    if normalized not in ALLOWED_DAYS:
+    if result not in ALLOWED_DAYS:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid day. Choose Monday "
-                "through Sunday."
-            ),
+            status_code=400,
+            detail="Invalid day.",
         )
 
-    return normalized
+    return result
 
 
 def normalize_meal(
-    meal: str,
+    value: str,
 ) -> str:
-    normalized = (
-        meal
-        .strip()
-        .title()
+    result = (
+        value.strip().title()
     )
 
-    if normalized not in ALLOWED_MEALS:
+    if result not in ALLOWED_MEALS:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid meal type. Choose "
-                "Breakfast, Lunch, Snacks, or Dinner."
-            ),
+            status_code=400,
+            detail="Invalid meal type.",
         )
 
-    return normalized
+    return result
 
 
-def validate_menu_items(
-    menu_items: str,
+def normalize_items(
+    value: str,
 ) -> str:
-    value = menu_items.strip()
+    value = value.strip()
 
     if not value:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Menu items cannot be empty.",
+            status_code=400,
+            detail=(
+                "Menu items cannot be empty."
+            ),
         )
 
     if len(value) > 500:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=(
                 "Menu items cannot exceed "
                 "500 characters."
@@ -135,41 +127,40 @@ def validate_menu_items(
     return value
 
 
-def normalize_serving_time(
-    serving_time: str | None,
+def normalize_time(
+    value: str | None,
 ) -> str | None:
-    if serving_time is None:
+    if not value:
         return None
 
-    value = serving_time.strip()
+    value = value.strip()
 
     if not value:
         return None
 
     if len(value) > 50:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=(
-                "Serving time cannot exceed "
-                "50 characters."
+                "Serving time is too long."
             ),
         )
 
     return value
 
 
-def sort_menu(
+def sorted_menu(
     records: list[FoodMenu],
-) -> list[FoodMenu]:
+):
     return sorted(
         records,
-        key=lambda record: (
+        key=lambda item: (
             DAY_ORDER.get(
-                record.day_of_week,
+                item.day_of_week,
                 99,
             ),
             MEAL_ORDER.get(
-                record.meal_type,
+                item.meal_type,
                 99,
             ),
         ),
@@ -179,13 +170,13 @@ def sort_menu(
 @router.post(
     "/",
     response_model=FoodMenuResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=201,
 )
-def create_food_menu(
+def create_menu(
     payload: FoodMenuCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Admin")
+        require_roles("Warden")
     ),
 ):
     day = normalize_day(
@@ -196,15 +187,7 @@ def create_food_menu(
         payload.meal_type
     )
 
-    items = validate_menu_items(
-        payload.menu_items
-    )
-
-    serving_time = normalize_serving_time(
-        payload.serving_time
-    )
-
-    existing = (
+    duplicate = (
         db.query(FoodMenu)
         .filter(
             FoodMenu.day_of_week == day,
@@ -213,9 +196,9 @@ def create_food_menu(
         .first()
     )
 
-    if existing:
+    if duplicate:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=409,
             detail=(
                 f"{meal} menu for {day} "
                 "already exists."
@@ -225,8 +208,12 @@ def create_food_menu(
     menu = FoodMenu(
         day_of_week=day,
         meal_type=meal,
-        menu_items=items,
-        serving_time=serving_time,
+        menu_items=normalize_items(
+            payload.menu_items
+        ),
+        serving_time=normalize_time(
+            payload.serving_time
+        ),
         is_active=payload.is_active,
     )
 
@@ -239,10 +226,9 @@ def create_food_menu(
         db.rollback()
 
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=409,
             detail=(
-                f"{meal} menu for {day} "
-                "already exists."
+                "Food menu already exists."
             ),
         )
 
@@ -257,11 +243,12 @@ def create_food_menu(
         FoodMenuResponse
     ],
 )
-def get_weekly_menu(
+def weekly_menu(
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
             "Admin",
+            "Warden",
             "Student",
         )
     ),
@@ -270,12 +257,13 @@ def get_weekly_menu(
 
     if current_user.role == "Student":
         query = query.filter(
-            FoodMenu.is_active.is_(True)
+            FoodMenu.is_active
+            .is_(True)
         )
 
-    records = query.all()
-
-    return sort_menu(records)
+    return sorted_menu(
+        query.all()
+    )
 
 
 @router.get(
@@ -284,39 +272,38 @@ def get_weekly_menu(
         FoodMenuResponse
     ],
 )
-def get_today_menu(
+def today_menu(
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
             "Admin",
+            "Warden",
             "Student",
         )
     ),
 ):
-    today_name = datetime.now(
+    day = datetime.now(
         INDIA_TIMEZONE
     ).strftime("%A")
 
     query = (
         db.query(FoodMenu)
         .filter(
-            FoodMenu.day_of_week
-            == today_name
+            FoodMenu.day_of_week == day
         )
     )
 
     if current_user.role == "Student":
         query = query.filter(
-            FoodMenu.is_active.is_(True)
+            FoodMenu.is_active
+            .is_(True)
         )
 
-    records = query.all()
-
     return sorted(
-        records,
-        key=lambda record:
+        query.all(),
+        key=lambda item:
             MEAL_ORDER.get(
-                record.meal_type,
+                item.meal_type,
                 99,
             ),
     )
@@ -326,12 +313,12 @@ def get_today_menu(
     "/{menu_id}",
     response_model=FoodMenuResponse,
 )
-def update_food_menu(
+def update_menu(
     menu_id: int,
     payload: FoodMenuUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Admin")
+        require_roles("Warden")
     ),
 ):
     menu = (
@@ -344,8 +331,8 @@ def update_food_menu(
 
     if menu is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Food menu record not found.",
+            status_code=404,
+            detail="Menu not found.",
         )
 
     day = normalize_day(
@@ -354,14 +341,6 @@ def update_food_menu(
 
     meal = normalize_meal(
         payload.meal_type
-    )
-
-    items = validate_menu_items(
-        payload.menu_items
-    )
-
-    serving_time = normalize_serving_time(
-        payload.serving_time
     )
 
     duplicate = (
@@ -376,46 +355,46 @@ def update_food_menu(
 
     if duplicate:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=409,
             detail=(
-                f"{meal} menu for {day} "
-                "already exists."
+                "A menu already exists "
+                "for that day and meal."
             ),
         )
 
     menu.day_of_week = day
     menu.meal_type = meal
-    menu.menu_items = items
-    menu.serving_time = serving_time
-    menu.is_active = payload.is_active
 
-    try:
-        db.commit()
-
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"{meal} menu for {day} "
-                "already exists."
-            ),
+    menu.menu_items = (
+        normalize_items(
+            payload.menu_items
         )
+    )
 
+    menu.serving_time = (
+        normalize_time(
+            payload.serving_time
+        )
+    )
+
+    menu.is_active = (
+        payload.is_active
+    )
+
+    db.commit()
     db.refresh(menu)
 
     return menu
 
 
 @router.delete(
-    "/{menu_id}",
+    "/{menu_id}"
 )
-def delete_food_menu(
+def delete_menu(
     menu_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Admin")
+        require_roles("Warden")
     ),
 ):
     menu = (
@@ -428,8 +407,8 @@ def delete_food_menu(
 
     if menu is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Food menu record not found.",
+            status_code=404,
+            detail="Menu not found.",
         )
 
     db.delete(menu)

@@ -5,6 +5,7 @@ import {
 } from "react";
 
 import Sidebar from "../components/Sidebar";
+
 import "../components/Sidebar.css";
 import "./FoodMenu.css";
 
@@ -31,11 +32,20 @@ const MEALS = [
 
 
 const EMPTY_FORM = {
-  day_of_week: "Monday",
-  meal_type: "Breakfast",
-  menu_items: "",
-  serving_time: "",
-  is_active: true,
+  day_of_week:
+    "Monday",
+
+  meal_type:
+    "Breakfast",
+
+  menu_items:
+    "",
+
+  serving_time:
+    "",
+
+  is_active:
+    true,
 };
 
 
@@ -46,18 +56,11 @@ function getRole() {
         "access_token"
       );
 
-    if (!token) {
-      return null;
-    }
-
-    const payload =
-      JSON.parse(
-        atob(
-          token.split(".")[1]
-        )
-      );
-
-    return payload.role || null;
+    return JSON.parse(
+      atob(
+        token.split(".")[1]
+      )
+    ).role;
 
   } catch {
     return null;
@@ -65,55 +68,29 @@ function getRole() {
 }
 
 
-function getErrorMessage(
-  error,
-  fallback
-) {
-  if (!error.response) {
-    return (
-      "Unable to connect to the backend."
-    );
-  }
-
-  const detail =
-    error.response.data?.detail;
-
-  if (typeof detail === "string") {
-    return detail;
-  }
-
-  if (Array.isArray(detail)) {
-    return detail
-      .map(
-        (item) =>
-          item.msg ||
-          "Validation error"
-      )
-      .join(", ");
-  }
-
-  return fallback;
-}
-
-
 function FoodMenu() {
-  const role = getRole();
+  const role =
+    getRole();
 
-  const isAdmin =
-    role === "Admin";
+  const canManage =
+    role === "Warden";
 
-
-  const [weeklyMenu, setWeeklyMenu] =
+  const [weekly, setWeekly] =
     useState([]);
 
-  const [todayMenu, setTodayMenu] =
+  const [today, setToday] =
     useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
+  const [showForm, setShowForm] =
     useState(false);
+
+  const [editing, setEditing] =
+    useState(null);
+
+  const [form, setForm] =
+    useState(
+      EMPTY_FORM
+    );
 
   const [error, setError] =
     useState("");
@@ -121,188 +98,117 @@ function FoodMenu() {
   const [success, setSuccess] =
     useState("");
 
-  const [showForm, setShowForm] =
-    useState(false);
 
-  const [editingMenu, setEditingMenu] =
-    useState(null);
+  const load =
+    useCallback(
+      async () => {
+        try {
+          setError("");
 
-  const [formData, setFormData] =
-    useState(EMPTY_FORM);
+          const [
+            weeklyResponse,
+            todayResponse,
+          ] = await Promise.all([
+            api.get(
+              "/food-menu/weekly"
+            ),
 
+            api.get(
+              "/food-menu/today"
+            ),
+          ]);
 
-  const loadMenu =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError("");
+          setWeekly(
+            weeklyResponse.data
+          );
 
-        const [
-          weeklyResponse,
-          todayResponse,
-        ] = await Promise.all([
-          api.get(
-            "/food-menu/weekly"
-          ),
-          api.get(
-            "/food-menu/today"
-          ),
-        ]);
+          setToday(
+            todayResponse.data
+          );
 
-        setWeeklyMenu(
-          weeklyResponse.data
-        );
-
-        setTodayMenu(
-          todayResponse.data
-        );
-
-      } catch (error) {
-        setError(
-          getErrorMessage(
-            error,
+        } catch (error) {
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
             "Unable to load food menu."
-          )
-        );
-
-      } finally {
-        setLoading(false);
-      }
-    }, []);
+          );
+        }
+      },
+      []
+    );
 
 
   useEffect(() => {
-    loadMenu();
-  }, [loadMenu]);
+    load();
+  }, [load]);
 
 
-  const handleChange =
-    (event) => {
-      const {
-        name,
-        value,
-        type,
-        checked,
-      } = event.target;
+  const addForm =
+    () => {
+      setEditing(null);
 
-      setFormData(
-        (previous) => ({
-          ...previous,
+      setForm({
+        ...EMPTY_FORM,
+      });
 
-          [name]:
-            type === "checkbox"
-              ? checked
-              : value,
-        })
-      );
+      setShowForm(true);
     };
 
 
-  const openAddForm = () => {
-    setEditingMenu(null);
+  const editForm =
+    (record) => {
+      setEditing(
+        record
+      );
 
-    setFormData({
-      ...EMPTY_FORM,
-    });
+      setForm({
+        day_of_week:
+          record.day_of_week,
 
-    setError("");
-    setSuccess("");
-    setShowForm(true);
-  };
+        meal_type:
+          record.meal_type,
 
+        menu_items:
+          record.menu_items,
 
-  const openEditForm = (
-    menu
-  ) => {
-    setEditingMenu(menu);
+        serving_time:
+          record.serving_time
+          || "",
 
-    setFormData({
-      day_of_week:
-        menu.day_of_week,
+        is_active:
+          record.is_active,
+      });
 
-      meal_type:
-        menu.meal_type,
-
-      menu_items:
-        menu.menu_items || "",
-
-      serving_time:
-        menu.serving_time || "",
-
-      is_active:
-        Boolean(
-          menu.is_active
-        ),
-    });
-
-    setError("");
-    setSuccess("");
-    setShowForm(true);
-  };
+      setShowForm(true);
+    };
 
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingMenu(null);
-
-    setFormData({
-      ...EMPTY_FORM,
-    });
-  };
-
-
-  const handleSubmit =
+  const save =
     async (event) => {
       event.preventDefault();
 
-      if (
-        !formData
-          .menu_items
-          .trim()
-      ) {
-        setError(
-          "Enter at least one menu item."
-        );
-
-        return;
-      }
-
       try {
-        setSaving(true);
         setError("");
         setSuccess("");
 
         const payload = {
-          day_of_week:
-            formData.day_of_week,
-
-          meal_type:
-            formData.meal_type,
-
-          menu_items:
-            formData
-              .menu_items
-              .trim(),
+          ...form,
 
           serving_time:
-            formData
-              .serving_time
-              .trim()
-              || null,
-
-          is_active:
-            formData.is_active,
+            form.serving_time
+            || null,
         };
 
-
-        if (editingMenu) {
+        if (editing) {
           await api.put(
-            `/food-menu/${editingMenu.id}`,
+            `/food-menu/${editing.id}`,
             payload
           );
 
           setSuccess(
-            "Food menu updated successfully."
+            "Menu updated successfully."
           );
 
         } else {
@@ -312,72 +218,57 @@ function FoodMenu() {
           );
 
           setSuccess(
-            "Food menu added successfully."
+            "Menu added successfully."
           );
         }
 
+        setShowForm(false);
+        setEditing(null);
 
-        closeForm();
-
-        await loadMenu();
+        await load();
 
       } catch (error) {
         setError(
-          getErrorMessage(
-            error,
-            "Unable to save food menu."
-          )
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to save menu."
         );
-
-      } finally {
-        setSaving(false);
       }
     };
 
 
-  const handleDelete =
-    async (menu) => {
-      const confirmed =
-        window.confirm(
-          `Delete ${menu.meal_type} menu for ${menu.day_of_week}?`
-        );
-
-      if (!confirmed) {
+  const remove =
+    async (record) => {
+      if (
+        !window.confirm(
+          `Delete ${record.meal_type} menu for ${record.day_of_week}?`
+        )
+      ) {
         return;
       }
 
       try {
-        setError("");
-        setSuccess("");
-
         await api.delete(
-          `/food-menu/${menu.id}`
+          `/food-menu/${record.id}`
         );
 
         setSuccess(
-          "Food menu deleted successfully."
+          "Menu deleted successfully."
         );
 
-        await loadMenu();
+        await load();
 
       } catch (error) {
         setError(
-          getErrorMessage(
-            error,
-            "Unable to delete food menu."
-          )
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to delete menu."
         );
       }
-    };
-
-
-  const getDayMenu =
-    (day) => {
-      return weeklyMenu.filter(
-        (item) =>
-          item.day_of_week
-          === day
-      );
     };
 
 
@@ -386,13 +277,10 @@ function FoodMenu() {
       <Sidebar />
 
       <main className="dashboard-main">
-
         <header className="dashboard-header">
           <div>
             <span className="dashboard-label">
-              {isAdmin
-                ? "ADMINISTRATION"
-                : "HOSTEL DINING"}
+              HOSTEL DINING
             </span>
 
             <h1>
@@ -400,19 +288,19 @@ function FoodMenu() {
             </h1>
 
             <p>
-              {isAdmin
-                ? "Create and manage the hostel weekly food menu."
-                : "View today's meals and the weekly hostel food menu."}
+              {canManage
+                ? "Manage the weekly hostel menu."
+                : "View the hostel food menu."}
             </p>
           </div>
 
           <div className="dashboard-date">
             <span>
-              TODAY'S MEALS
+              TODAY
             </span>
 
             <strong>
-              {todayMenu.length}
+              {today.length}
             </strong>
           </div>
         </header>
@@ -424,7 +312,6 @@ function FoodMenu() {
           </div>
         )}
 
-
         {success && (
           <div className="food-message success">
             {success}
@@ -433,145 +320,100 @@ function FoodMenu() {
 
 
         <section className="overview-card">
+          <h2>
+            Today's Menu
+          </h2>
 
-          <div className="food-section-header">
-            <div>
-              <h2>
-                Today's Menu
-              </h2>
-
-              <p>
-                Meals available in the hostel today.
-              </p>
-            </div>
-          </div>
-
-
-          {loading ? (
+          {today.length === 0 ? (
             <div className="food-empty">
-              Loading today's menu...
-            </div>
-
-          ) : todayMenu.length === 0 ? (
-            <div className="food-empty">
-              Today's food menu has not
-              been added yet.
+              No menu added for today.
             </div>
 
           ) : (
             <div className="food-today-grid">
-
-              {todayMenu.map(
-                (menu) => (
+              {today.map(
+                (item) => (
                   <article
-                    key={menu.id}
+                    key={item.id}
                     className="food-today-card"
                   >
-                    <div className="food-meal-icon">
-                      {menu.meal_type
-                        === "Breakfast"
-                        ? "☀"
-                        : menu.meal_type
-                          === "Lunch"
-                          ? "🍚"
-                          : menu.meal_type
-                            === "Snacks"
-                            ? "☕"
-                            : "🌙"}
-                    </div>
-
                     <h3>
-                      {menu.meal_type}
+                      {item.meal_type}
                     </h3>
 
-                    <p className="food-items">
-                      {menu.menu_items}
+                    <p>
+                      {item.menu_items}
                     </p>
 
                     <small>
-                      {menu.serving_time
-                        || "Serving time not specified"}
+                      {item.serving_time
+                        || "Time not specified"}
                     </small>
                   </article>
                 )
               )}
-
             </div>
           )}
-
         </section>
 
 
-        <section className="overview-card food-weekly-section">
-
+        <section
+          className="overview-card"
+          style={{
+            marginTop:
+              "22px",
+          }}
+        >
           <div className="food-section-header">
             <div>
               <h2>
                 Weekly Menu
               </h2>
-
-              <p>
-                Hostel meal schedule from
-                Monday to Sunday.
-              </p>
             </div>
 
-
-            {isAdmin && (
+            {canManage && (
               <button
                 type="button"
                 className="primary-button"
                 onClick={
                   showForm
-                    ? closeForm
-                    : openAddForm
+                    ? () =>
+                        setShowForm(false)
+                    : addForm
                 }
               >
                 {showForm
-                  ? "Close Form"
+                  ? "Close"
                   : "+ Add Menu"}
               </button>
             )}
-
           </div>
 
 
-          {isAdmin && showForm && (
+          {canManage && showForm && (
             <form
               className="food-menu-form"
-              onSubmit={handleSubmit}
+              onSubmit={save}
             >
-
-              <div className="food-form-heading">
-                <h3>
-                  {editingMenu
-                    ? "Edit Menu"
-                    : "Add Food Menu"}
-                </h3>
-
-                <p>
-                  Enter the hostel meal details below.
-                </p>
-              </div>
-
-
               <div className="food-form-grid">
-
                 <div className="food-form-field">
-                  <label htmlFor="day_of_week">
+                  <label>
                     Day
                   </label>
 
                   <select
-                    id="day_of_week"
-                    name="day_of_week"
                     value={
-                      formData.day_of_week
+                      form.day_of_week
                     }
                     onChange={
-                      handleChange
+                      (event) =>
+                        setForm({
+                          ...form,
+
+                          day_of_week:
+                            event.target.value,
+                        })
                     }
-                    disabled={saving}
                   >
                     {DAYS.map(
                       (day) => (
@@ -586,22 +428,24 @@ function FoodMenu() {
                   </select>
                 </div>
 
-
                 <div className="food-form-field">
-                  <label htmlFor="meal_type">
+                  <label>
                     Meal
                   </label>
 
                   <select
-                    id="meal_type"
-                    name="meal_type"
                     value={
-                      formData.meal_type
+                      form.meal_type
                     }
                     onChange={
-                      handleChange
+                      (event) =>
+                        setForm({
+                          ...form,
+
+                          meal_type:
+                            event.target.value,
+                        })
                     }
-                    disabled={saving}
                   >
                     {MEALS.map(
                       (meal) => (
@@ -616,231 +460,169 @@ function FoodMenu() {
                   </select>
                 </div>
 
-
                 <div className="food-form-field">
-                  <label htmlFor="serving_time">
+                  <label>
                     Serving Time
                   </label>
 
                   <input
-                    id="serving_time"
-                    name="serving_time"
-                    type="text"
-                    maxLength={50}
-                    placeholder="Example: 7:30 AM - 9:00 AM"
                     value={
-                      formData.serving_time
+                      form.serving_time
                     }
+                    placeholder="7:30 AM - 9:00 AM"
                     onChange={
-                      handleChange
+                      (event) =>
+                        setForm({
+                          ...form,
+
+                          serving_time:
+                            event.target.value,
+                        })
                     }
-                    disabled={saving}
                   />
                 </div>
 
-
                 <div className="food-form-field full">
-                  <label htmlFor="menu_items">
+                  <label>
                     Menu Items
                   </label>
 
                   <textarea
-                    id="menu_items"
-                    name="menu_items"
-                    maxLength={500}
-                    rows={4}
-                    placeholder="Example: Idli, Vada, Sambar, Chutney, Tea"
+                    required
+                    rows="4"
                     value={
-                      formData.menu_items
+                      form.menu_items
                     }
                     onChange={
-                      handleChange
+                      (event) =>
+                        setForm({
+                          ...form,
+
+                          menu_items:
+                            event.target.value,
+                        })
                     }
-                    disabled={saving}
-                    required
                   />
                 </div>
-
 
                 <label className="food-active-field">
                   <input
                     type="checkbox"
-                    name="is_active"
                     checked={
-                      formData.is_active
+                      form.is_active
                     }
                     onChange={
-                      handleChange
+                      (event) =>
+                        setForm({
+                          ...form,
+
+                          is_active:
+                            event.target.checked,
+                        })
                     }
-                    disabled={saving}
                   />
 
-                  <span>
-                    Menu is active and
-                    visible to students
-                  </span>
+                  Active menu
                 </label>
-
               </div>
 
-
               <div className="food-form-actions">
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={closeForm}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-
-
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={saving}
                 >
-                  {saving
-                    ? "Saving..."
-                    : editingMenu
-                      ? "Update Menu"
-                      : "Add Menu"}
+                  {editing
+                    ? "Update Menu"
+                    : "Add Menu"}
                 </button>
-
               </div>
-
             </form>
           )}
 
 
-          {loading ? (
-            <div className="food-empty">
-              Loading weekly menu...
-            </div>
+          <div className="food-week-grid">
+            {DAYS.map(
+              (day) => {
+                const records =
+                  weekly.filter(
+                    (record) =>
+                      record.day_of_week
+                      === day
+                  );
 
-          ) : (
-            <div className="food-week-grid">
+                return (
+                  <div
+                    key={day}
+                    className="food-day-card"
+                  >
+                    <div className="food-day-title">
+                      <h3>
+                        {day}
+                      </h3>
 
-              {DAYS.map(
-                (day) => {
-                  const dayMenu =
-                    getDayMenu(day);
+                      <span>
+                        {records.length} meals
+                      </span>
+                    </div>
 
-                  return (
-                    <div
-                      key={day}
-                      className="food-day-card"
-                    >
-                      <div className="food-day-title">
-                        <h3>
-                          {day}
-                        </h3>
+                    {records.map(
+                      (record) => (
+                        <div
+                          key={record.id}
+                          className={
+                            record.is_active
+                              ? "food-day-meal"
+                              : "food-day-meal inactive"
+                          }
+                        >
+                          <strong>
+                            {record.meal_type}
+                          </strong>
 
-                        <span>
-                          {dayMenu.length} meals
-                        </span>
-                      </div>
+                          <p>
+                            {record.menu_items}
+                          </p>
 
+                          <small>
+                            {record.serving_time
+                              || "Time not specified"}
+                          </small>
 
-                      {dayMenu.length === 0 ? (
-                        <p className="food-day-empty">
-                          No menu added.
-                        </p>
-
-                      ) : (
-                        <div className="food-day-meals">
-
-                          {dayMenu.map(
-                            (menu) => (
-                              <div
-                                key={menu.id}
-                                className={
-                                  menu.is_active
-                                    ? "food-day-meal"
-                                    : "food-day-meal inactive"
+                          {canManage && (
+                            <div className="food-actions">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  editForm(
+                                    record
+                                  )
                                 }
                               >
+                                Edit
+                              </button>
 
-                                <div className="food-day-meal-top">
-                                  <strong>
-                                    {menu.meal_type}
-                                  </strong>
-
-                                  {isAdmin && (
-                                    <span
-                                      className={
-                                        menu.is_active
-                                          ? "food-active-badge"
-                                          : "food-inactive-badge"
-                                      }
-                                    >
-                                      {menu.is_active
-                                        ? "Active"
-                                        : "Inactive"}
-                                    </span>
-                                  )}
-                                </div>
-
-
-                                <p>
-                                  {menu.menu_items}
-                                </p>
-
-
-                                <small>
-                                  {menu.serving_time
-                                    || "Time not specified"}
-                                </small>
-
-
-                                {isAdmin && (
-                                  <div className="food-actions">
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        openEditForm(
-                                          menu
-                                        )
-                                      }
-                                    >
-                                      Edit
-                                    </button>
-
-
-                                    <button
-                                      type="button"
-                                      className="delete"
-                                      onClick={() =>
-                                        handleDelete(
-                                          menu
-                                        )
-                                      }
-                                    >
-                                      Delete
-                                    </button>
-
-                                  </div>
-                                )}
-
-                              </div>
-                            )
+                              <button
+                                type="button"
+                                className="delete"
+                                onClick={() =>
+                                  remove(
+                                    record
+                                  )
+                                }
+                              >
+                                Delete
+                              </button>
+                            </div>
                           )}
-
                         </div>
-                      )}
-
-                    </div>
-                  );
-                }
-              )}
-
-            </div>
-          )}
-
+                      )
+                    )}
+                  </div>
+                );
+              }
+            )}
+          </div>
         </section>
-
       </main>
     </div>
   );

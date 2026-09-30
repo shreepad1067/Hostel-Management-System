@@ -6,248 +6,584 @@ import {
 } from "react-router-dom";
 
 
+function getRole() {
+  try {
+    const token =
+      localStorage.getItem(
+        "access_token"
+      );
+
+    if (!token) {
+      return "Guest";
+    }
+
+    return (
+      JSON.parse(
+        atob(
+          token.split(".")[1]
+        )
+      ).role
+      || "Student"
+    );
+
+  } catch {
+    return "Student";
+  }
+}
+
+
 function Sidebar() {
   const navigate =
     useNavigate();
 
-
-  const role = (() => {
-    try {
-      const token =
-        localStorage.getItem(
-          "access_token"
-        );
-
-      if (!token) {
-        return "Guest";
-      }
-
-      const payload =
-        JSON.parse(
-          atob(
-            token.split(".")[1]
-          )
-        );
-
-      return (
-        payload.role
-        || "Student"
-      );
-
-    } catch {
-      return "Student";
-    }
-  })();
+  const role =
+    getRole();
 
 
   const studentMenu = [
     {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: "▦",
-    },
-    {
-      name: "My Room",
-      path: "/my-room",
-      icon: "⌂",
-    },
-    {
-      name: "My Fees",
-      path: "/my-fees",
-      icon: "₹",
-    },
-    {
-      name: "Meal Tracking",
-      path: "/meal-tracking",
-      icon: "🍽",
-    },
-    {
-      name: "Food Menu",
-      path: "/food-menu",
-      icon: "☷",
-    },
-    {
-      name: "SOS / Emergency",
-      path: "/sos",
-      icon: "🚨",
-    },
-    {
-      name: "AI Assistant",
-      path: "/ai",
-      icon: "✦",
-    },
-    {
-      name: "Attendance",
-      path: "/attendance",
-      icon: "✓",
-    },
-    {
-      name: "Complaints",
-      path: "/complaints",
-      icon: "⚠",
-    },
-    {
-      name: "Leave",
-      path: "/leave",
-      icon: "▣",
-    },
-    {
-      name: "Visitors",
-      path: "/visitors",
-      icon: "♙",
-    },
-    {
-      name: "Notices",
-      path: "/notices",
-      icon: "◉",
-    },
-  ];
+      name:
+        "Dashboard",
 
+      path:
+        "/dashboard",
 
-  const adminMenu = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: "▦",
+      icon:
+        "▦",
     },
+
     {
-      name: "Account Management",
-      path: "/accounts",
-      icon: "♜",
+      name:
+        "My Room",
+
+      path:
+        "/my-room",
+
+      icon:
+        "⌂",
     },
+
     {
-      name: "Students",
-      path: "/students",
-      icon: "♙",
+      name:
+        "My Fees",
+
+      path:
+        "/my-fees",
+
+      icon:
+        "₹",
     },
+
     {
-      name: "Rooms",
-      path: "/rooms",
-      icon: "⌂",
+      name:
+        "Meal Tracking",
+
+      path:
+        "/meal-tracking",
+
+      icon:
+        "🍽",
     },
+
     {
-      name: "Room Allocation",
-      path: "/room-allocation",
-      icon: "▣",
+      name:
+        "Food Menu",
+
+      path:
+        "/food-menu",
+
+      icon:
+        "☷",
     },
+
     {
-      name: "Fees",
-      path: "/fees",
-      icon: "₹",
+      name:
+        "Food Feedback",
+
+      path:
+        "/food-feedback",
+
+      icon:
+        "★",
     },
+
     {
-      name: "Meal Tracking",
-      path: "/meal-tracking",
-      icon: "🍽",
+      name:
+        "Attendance",
+
+      path:
+        "/attendance",
+
+      icon:
+        "✓",
     },
+
     {
-      name: "Food Menu",
-      path: "/food-menu",
-      icon: "☷",
+      name:
+        "Complaints",
+
+      path:
+        "/complaints",
+
+      icon:
+        "⚠",
     },
+
     {
-      name: "SOS Alerts",
-      path: "/sos",
-      icon: "🚨",
+      name:
+        "Leave",
+
+      path:
+        "/leave",
+
+      icon:
+        "▣",
     },
+
     {
-      name: "AI Center",
-      path: "/ai",
-      icon: "✦",
+      name:
+        "Visitors",
+
+      path:
+        "/visitors",
+
+      icon:
+        "♙",
     },
+
     {
-      name: "Attendance",
-      path: "/attendance",
-      icon: "✓",
+      name:
+        "Notices",
+
+      path:
+        "/notices",
+
+      icon:
+        "◉",
     },
+
     {
-      name: "Complaints",
-      path: "/complaints",
-      icon: "⚠",
+      name:
+        "SOS / Emergency",
+
+      path:
+        "/sos",
+
+      icon:
+        "🚨",
     },
+
     {
-      name: "Leave",
-      path: "/leave",
-      icon: "▤",
+      name:
+        "About Hostel",
+
+      path:
+        "/about-hostel",
+
+      icon:
+        "⌂",
     },
+
     {
-      name: "Visitors",
-      path: "/visitors",
-      icon: "♙",
+      name:
+        "Website Feedback",
+
+      path:
+        "/website-feedback",
+
+      icon:
+        "✎",
     },
+
     {
-      name: "Notices",
-      path: "/notices",
-      icon: "◉",
+      name:
+        "AI Assistant",
+
+      path:
+        "/ai",
+
+      icon:
+        "✦",
     },
   ];
 
 
   const wardenMenu = [
     {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: "▦",
+      name:
+        "Dashboard",
+
+      path:
+        "/dashboard",
+
+      icon:
+        "▦",
     },
+
     {
-      name: "Students",
-      path: "/students",
-      icon: "♙",
+      name:
+        "Students",
+
+      path:
+        "/students",
+
+      icon:
+        "♙",
     },
+
     {
-      name: "Rooms",
-      path: "/rooms",
-      icon: "⌂",
+      name:
+        "Rooms",
+
+      path:
+        "/rooms",
+
+      icon:
+        "⌂",
     },
+
     {
-      name: "Room Allocation",
-      path: "/room-allocation",
-      icon: "▣",
+      name:
+        "Room Allocation",
+
+      path:
+        "/room-allocation",
+
+      icon:
+        "▣",
     },
+
     {
-      name: "Fees",
-      path: "/fees",
-      icon: "₹",
+      name:
+        "Fees",
+
+      path:
+        "/fees",
+
+      icon:
+        "₹",
     },
+
     {
-      name: "Meal Tracking",
-      path: "/meal-tracking",
-      icon: "🍽",
+      name:
+        "Meal Tracking",
+
+      path:
+        "/meal-tracking",
+
+      icon:
+        "🍽",
     },
+
     {
-      name: "SOS Alerts",
-      path: "/sos",
-      icon: "🚨",
+      name:
+        "Food Menu",
+
+      path:
+        "/food-menu",
+
+      icon:
+        "☷",
     },
+
     {
-      name: "AI Center",
-      path: "/ai",
-      icon: "✦",
+      name:
+        "Food Feedback",
+
+      path:
+        "/food-feedback",
+
+      icon:
+        "★",
     },
+
     {
-      name: "Attendance",
-      path: "/attendance",
-      icon: "✓",
+      name:
+        "Attendance",
+
+      path:
+        "/attendance",
+
+      icon:
+        "✓",
     },
+
     {
-      name: "Complaints",
-      path: "/complaints",
-      icon: "⚠",
+      name:
+        "Complaints",
+
+      path:
+        "/complaints",
+
+      icon:
+        "⚠",
     },
+
     {
-      name: "Leave",
-      path: "/leave",
-      icon: "▤",
+      name:
+        "Leave",
+
+      path:
+        "/leave",
+
+      icon:
+        "▤",
     },
+
     {
-      name: "Visitors",
-      path: "/visitors",
-      icon: "♙",
+      name:
+        "Visitors",
+
+      path:
+        "/visitors",
+
+      icon:
+        "♙",
     },
+
     {
-      name: "Notices",
-      path: "/notices",
-      icon: "◉",
+      name:
+        "Notices",
+
+      path:
+        "/notices",
+
+      icon:
+        "◉",
+    },
+
+    {
+      name:
+        "SOS Alerts",
+
+      path:
+        "/sos",
+
+      icon:
+        "🚨",
+    },
+
+    {
+      name:
+        "About Hostel",
+
+      path:
+        "/about-hostel",
+
+      icon:
+        "⌂",
+    },
+
+    {
+      name:
+        "AI Center",
+
+      path:
+        "/ai",
+
+      icon:
+        "✦",
+    },
+  ];
+
+
+  const adminMenu = [
+    {
+      name:
+        "Dashboard",
+
+      path:
+        "/dashboard",
+
+      icon:
+        "▦",
+    },
+
+    {
+      name:
+        "Account Management",
+
+      path:
+        "/accounts",
+
+      icon:
+        "♜",
+    },
+
+    {
+      name:
+        "Students",
+
+      path:
+        "/students",
+
+      icon:
+        "♙",
+    },
+
+    {
+      name:
+        "Rooms",
+
+      path:
+        "/rooms",
+
+      icon:
+        "⌂",
+    },
+
+    {
+      name:
+        "Room Allocation",
+
+      path:
+        "/room-allocation",
+
+      icon:
+        "▣",
+    },
+
+    {
+      name:
+        "Fees",
+
+      path:
+        "/fees",
+
+      icon:
+        "₹",
+    },
+
+    {
+      name:
+        "Meal Tracking",
+
+      path:
+        "/meal-tracking",
+
+      icon:
+        "🍽",
+    },
+
+    {
+      name:
+        "Food Menu",
+
+      path:
+        "/food-menu",
+
+      icon:
+        "☷",
+    },
+
+    {
+      name:
+        "Food Feedback",
+
+      path:
+        "/food-feedback",
+
+      icon:
+        "★",
+    },
+
+    {
+      name:
+        "Attendance",
+
+      path:
+        "/attendance",
+
+      icon:
+        "✓",
+    },
+
+    {
+      name:
+        "Complaints",
+
+      path:
+        "/complaints",
+
+      icon:
+        "⚠",
+    },
+
+    {
+      name:
+        "Leave",
+
+      path:
+        "/leave",
+
+      icon:
+        "▤",
+    },
+
+    {
+      name:
+        "Visitors",
+
+      path:
+        "/visitors",
+
+      icon:
+        "♙",
+    },
+
+    {
+      name:
+        "Notices",
+
+      path:
+        "/notices",
+
+      icon:
+        "◉",
+    },
+
+    {
+      name:
+        "SOS Alerts",
+
+      path:
+        "/sos",
+
+      icon:
+        "🚨",
+    },
+
+    {
+      name:
+        "About Hostel",
+
+      path:
+        "/about-hostel",
+
+      icon:
+        "⌂",
+    },
+
+    {
+      name:
+        "Website Feedback",
+
+      path:
+        "/website-feedback",
+
+      icon:
+        "✎",
+    },
+
+    {
+      name:
+        "AI Center",
+
+      path:
+        "/ai",
+
+      icon:
+        "✦",
     },
   ];
 
@@ -255,37 +591,39 @@ function Sidebar() {
   let menuItems =
     wardenMenu;
 
-  if (role === "Student") {
+  if (
+    role === "Student"
+  ) {
     menuItems =
       studentMenu;
   }
 
-  if (role === "Admin") {
+  if (
+    role === "Admin"
+  ) {
     menuItems =
       adminMenu;
   }
 
 
-  const handleLogout = () => {
-    localStorage.removeItem(
-      "access_token"
-    );
+  const handleLogout =
+    () => {
+      localStorage.removeItem(
+        "access_token"
+      );
 
-    navigate("/");
-  };
+      navigate("/");
+    };
 
 
   return (
     <aside className="sidebar">
-
       <div className="sidebar-logo">
-
         <div className="logo-icon">
           H
         </div>
 
         <div>
-
           <h2>
             HostelHub
           </h2>
@@ -293,9 +631,7 @@ function Sidebar() {
           <span>
             Management System
           </span>
-
         </div>
-
       </div>
 
 
@@ -305,13 +641,15 @@ function Sidebar() {
 
 
       <nav className="sidebar-nav">
-
         {menuItems.map(
           (item) => (
-
             <NavLink
-              key={item.path}
-              to={item.path}
+              key={
+                item.path
+              }
+              to={
+                item.path
+              }
               className={({
                 isActive,
               }) =>
@@ -320,7 +658,6 @@ function Sidebar() {
                   : "sidebar-link"
               }
             >
-
               <span className="sidebar-icon">
                 {item.icon}
               </span>
@@ -328,30 +665,19 @@ function Sidebar() {
               <span>
                 {item.name}
               </span>
-
             </NavLink>
-
           )
         )}
-
       </nav>
 
 
       <div className="sidebar-bottom">
-
         <div className="sidebar-user">
-
           <div className="user-avatar">
-
-            {role === "Student"
-              ? "S"
-              : role.charAt(0)}
-
+            {role.charAt(0)}
           </div>
 
-
           <div className="user-info">
-
             <strong>
               {role}
             </strong>
@@ -359,24 +685,23 @@ function Sidebar() {
             <span>
               Hostel Member
             </span>
-
           </div>
-
         </div>
 
 
         <button
           className="logout-button"
-          onClick={handleLogout}
+          onClick={
+            handleLogout
+          }
         >
+          <span>
+            ↪
+          </span>
 
-          <span>↪</span>
           Logout
-
         </button>
-
       </div>
-
     </aside>
   );
 }

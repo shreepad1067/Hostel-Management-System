@@ -1,0 +1,80 @@
+.website-feedback-alert {
+  margin-bottom: 18px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.website-feedback-alert.error {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.website-feedback-alert.success {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.website-feedback-form {
+  margin-top: 18px;
+}
+
+.website-feedback-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.website-feedback-grid label,
+.website-feedback-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.website-feedback-grid select,
+.website-feedback-message textarea {
+  padding: 11px 12px;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+}
+
+.website-feedback-message {
+  margin: 18px 0;
+}
+
+.website-feedback-table-wrap {
+  overflow-x: auto;
+  margin-top: 18px;
+}
+
+.website-feedback-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.website-feedback-table th,
+.website-feedback-table td {
+  padding: 13px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.website-feedback-table th {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+@media (max-width: 700px) {
+  .website-feedback-grid {
+    grid-template-columns: 1fr;
+  }
+}

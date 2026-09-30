@@ -1,285 +1,366 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import Sidebar from "../components/Sidebar";
+
 import "../components/Sidebar.css";
+
 import api from "../services/api";
 
+
+function roleFromToken() {
+  try {
+    const token =
+      localStorage.getItem(
+        "access_token"
+      );
+
+    return JSON.parse(
+      atob(
+        token.split(".")[1]
+      )
+    ).role;
+
+  } catch {
+    return null;
+  }
+}
+
+
+const EMPTY_FEE = {
+  student_id:
+    "",
+
+  amount:
+    "",
+
+  due_date:
+    "",
+
+  payment_date:
+    "",
+
+  status:
+    "Pending",
+
+  payment_method:
+    "",
+
+  description:
+    "",
+};
+
+
 function Fees() {
-  const emptyForm = {
-    student_id: "",
-    amount: "",
-    due_date: "",
-    payment_date: "",
-    status: "Pending",
-    payment_method: "",
-    description: "",
-  };
+  const role =
+    roleFromToken();
 
-  const [fees, setFees] = useState([]);
-  const [students, setStudents] = useState([]);
+  const isAdmin =
+    role === "Admin";
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [fees, setFees] =
+    useState([]);
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingFee, setEditingFee] = useState(null);
+  const [students, setStudents] =
+    useState([]);
 
-  const [formData, setFormData] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+  const [transactions, setTransactions] =
+    useState([]);
+
+  const [settings, setSettings] =
+    useState(null);
+
+  const [form, setForm] =
+    useState(
+      EMPTY_FEE
+    );
+
+  const [editing, setEditing] =
+    useState(null);
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+
+  const load =
+    useCallback(
+      async () => {
+        try {
+          setError("");
+
+          const [
+            feesResponse,
+            studentsResponse,
+            transactionsResponse,
+            settingsResponse,
+          ] = await Promise.all([
+            api.get(
+              "/fees/"
+            ),
+
+            api.get(
+              "/students/"
+            ),
+
+            api.get(
+              "/fees/payment-transactions"
+            ),
+
+            api.get(
+              "/fees/payment-settings"
+            ),
+          ]);
+
+          setFees(
+            feesResponse.data
+          );
+
+          setStudents(
+            studentsResponse.data
+          );
+
+          setTransactions(
+            transactionsResponse.data
+          );
+
+          setSettings(
+            settingsResponse.data
+          );
+
+        } catch (error) {
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load fee information."
+          );
+        }
+      },
+      []
+    );
+
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    load();
+  }, [load]);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
-    if (!err.response) {
-      return "Unable to connect to the backend.";
-    }
 
-    const detail = err.response.data?.detail;
+  const studentName =
+    (id) => {
+      const student =
+        students.find(
+          (item) =>
+            item.id === id
+        );
 
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          const location = Array.isArray(item.loc)
-            ? item.loc[item.loc.length - 1]
-            : "field";
+      if (!student) {
+        return `Student #${id}`;
+      }
 
-          return `${location}: ${
-            item.msg || "Invalid input"
-          }`;
-        })
-        .join(", ");
-    }
-
-    if (typeof detail === "string") {
-      return detail;
-    }
-
-    return defaultMessage;
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const [feesResponse, studentsResponse] =
-        await Promise.all([
-          api.get("/fees/"),
-          api.get("/students/"),
-        ]);
-
-      setFees(feesResponse.data);
-      setStudents(studentsResponse.data);
-    } catch (err) {
-      console.error(
-        "Failed to load fee data:",
-        err
-      );
-
-      setError(
-        getApiErrorMessage(
-          err,
-          "Failed to load fee data."
+      return (
+        `${student.name} - `
+        + (
+          student.student_code
+          || student.id
         )
       );
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const openAddForm = () => {
-    setEditingFee(null);
 
-    setFormData({
-      ...emptyForm,
-      due_date: new Date()
-        .toISOString()
-        .split("T")[0],
-    });
+  const openAdd =
+    () => {
+      setEditing(null);
 
-    setError("");
-    setShowForm(true);
-  };
+      setForm({
+        ...EMPTY_FEE,
+      });
 
-  const openEditForm = (fee) => {
-    setEditingFee(fee);
+      setShowForm(true);
+    };
 
-    setFormData({
-      student_id: String(fee.student_id),
-      amount: String(fee.amount),
-      due_date: fee.due_date || "",
-      payment_date: fee.payment_date || "",
-      status: fee.status || "Pending",
-      payment_method: fee.payment_method || "",
-      description: fee.description || "",
-    });
 
-    setError("");
-    setShowForm(true);
-  };
+  const openEdit =
+    (fee) => {
+      setEditing(fee);
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingFee(null);
-    setFormData(emptyForm);
-    setError("");
-  };
+      setForm({
+        student_id:
+          String(
+            fee.student_id
+          ),
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+        amount:
+          String(
+            fee.amount
+          ),
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
+        due_date:
+          fee.due_date
+          || "",
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    try {
-      setSaving(true);
-      setError("");
-
-      if (!formData.student_id) {
-        setError("Please select a student.");
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.amount) {
-        setError("Please enter the fee amount.");
-        setSaving(false);
-        return;
-      }
-
-      if (Number(formData.amount) <= 0) {
-        setError("Fee amount must be greater than 0.");
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.due_date) {
-        setError("Please select the due date.");
-        setSaving(false);
-        return;
-      }
-
-      if (
-        formData.status === "Paid" &&
-        !formData.payment_date
-      ) {
-        setError(
-          "Payment date is required when the fee is marked as Paid."
-        );
-        setSaving(false);
-        return;
-      }
-
-      const payload = {
-        student_id: Number(formData.student_id),
-        amount: Number(formData.amount),
-        due_date: formData.due_date,
         payment_date:
-          formData.payment_date || null,
-        status: formData.status,
-        payment_method:
-          formData.payment_method || null,
-        description:
-          formData.description || null,
-      };
+          fee.payment_date
+          || "",
 
-      if (editingFee) {
-        await api.put(
-          `/fees/${editingFee.id}`,
-          payload
+        status:
+          fee.status,
+
+        payment_method:
+          fee.payment_method
+          || "",
+
+        description:
+          fee.description
+          || "",
+      });
+
+      setShowForm(true);
+    };
+
+
+  const saveFee =
+    async (event) => {
+      event.preventDefault();
+
+      try {
+        setError("");
+        setSuccess("");
+
+        const payload = {
+          student_id:
+            Number(
+              form.student_id
+            ),
+
+          amount:
+            Number(
+              form.amount
+            ),
+
+          due_date:
+            form.due_date,
+
+          payment_date:
+            form.payment_date
+            || null,
+
+          status:
+            form.status,
+
+          payment_method:
+            form.payment_method
+            || null,
+
+          description:
+            form.description
+            || null,
+        };
+
+        if (editing) {
+          await api.put(
+            `/fees/${editing.id}`,
+            payload
+          );
+
+        } else {
+          await api.post(
+            "/fees/",
+            payload
+          );
+        }
+
+        setSuccess(
+          editing
+            ? "Fee updated."
+            : "Fee created."
         );
-      } else {
-        await api.post("/fees/", payload);
+
+        setEditing(null);
+        setShowForm(false);
+
+        await load();
+
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to save fee."
+        );
+      }
+    };
+
+
+  const deleteFee =
+    async (fee) => {
+      if (
+        !window.confirm(
+          "Delete this fee?"
+        )
+      ) {
+        return;
       }
 
-      await fetchData();
+      try {
+        await api.delete(
+          `/fees/${fee.id}`
+        );
 
-      closeForm();
-    } catch (err) {
-      console.error(
-        "Failed to save fee:",
-        err
-      );
+        await load();
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to save fee record."
-        )
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to delete fee."
+        );
+      }
+    };
 
-  const handleDelete = async (fee) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete fee record #${fee.id}?`
-    );
 
-    if (!confirmed) {
-      return;
-    }
+  const saveSettings =
+    async (event) => {
+      event.preventDefault();
 
-    try {
-      setError("");
+      try {
+        const response =
+          await api.put(
+            "/fees/payment-settings",
+            settings
+          );
 
-      await api.delete(
-        `/fees/${fee.id}`
-      );
+        setSettings(
+          response.data
+        );
 
-      await fetchData();
-    } catch (err) {
-      console.error(
-        "Failed to delete fee:",
-        err
-      );
+        setSuccess(
+          "Payment settings updated."
+        );
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to delete fee record."
-        )
-      );
-    }
-  };
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to update payment settings."
+        );
+      }
+    };
 
-  const getStudentName = (studentId) => {
-    const student = students.find(
-      (item) => item.id === studentId
-    );
-
-    return student
-      ? student.name
-      : `Student #${studentId}`;
-  };
-
-  const getStatusClass = (status) => {
-    const normalizedStatus = String(
-      status || ""
-    ).toLowerCase();
-
-    if (normalizedStatus === "paid") {
-      return "fee-status paid";
-    }
-
-    if (normalizedStatus === "pending") {
-      return "fee-status pending";
-    }
-
-    if (normalizedStatus === "overdue") {
-      return "fee-status overdue";
-    }
-
-    return "fee-status other";
-  };
 
   return (
     <div className="dashboard-layout">
@@ -289,397 +370,674 @@ function Fees() {
         <header className="dashboard-header">
           <div>
             <span className="dashboard-label">
-              MANAGEMENT
+              {isAdmin
+                ? "ADMIN FINANCE"
+                : "WARDEN MONITORING"}
             </span>
 
-            <h1>Fees</h1>
+            <h1>
+              Fees
+            </h1>
 
             <p>
-              Manage hostel fee records and payment
-              details.
+              {isAdmin
+                ? "Manage hostel fees and payment settings."
+                : "Monitor hostel fee payments."}
             </p>
-          </div>
-
-          <div className="dashboard-date">
-            <span>Total Records</span>
-
-            <strong>{fees.length}</strong>
           </div>
         </header>
 
+
         {error && (
           <div className="fees-error">
-            <p>{error}</p>
+            <p>
+              {error}
+            </p>
           </div>
         )}
 
-        <section className="overview-card fees-management-card">
-          <div className="overview-header">
-            <div>
-              <h2>Fee Records</h2>
+        {success && (
+          <div
+            style={{
+              marginBottom:
+                "18px",
 
-              <p>
-                Add, update and manage student fee
-                payments.
-              </p>
-            </div>
+              padding:
+                "14px",
 
-            <button
-              type="button"
-              className="primary-button"
-              onClick={
-                showForm
-                  ? closeForm
-                  : openAddForm
-              }
-            >
-              {showForm
-                ? "Close Form"
-                : "+ Add Fee"}
-            </button>
+              borderRadius:
+                "10px",
+
+              color:
+                "#067647",
+
+              background:
+                "#ecfdf3",
+            }}
+          >
+            {success}
           </div>
+        )}
 
-          {showForm && (
+
+        {isAdmin && settings && (
+          <section
+            className="overview-card"
+            style={{
+              marginBottom:
+                "22px",
+            }}
+          >
+            <h2>
+              Online Payment Settings
+            </h2>
+
             <form
               className="fee-form"
-              onSubmit={handleSubmit}
+              onSubmit={
+                saveSettings
+              }
             >
-              <div className="fee-form-title">
-                <div>
-                  <h3>
-                    {editingFee
-                      ? "Edit Fee Record"
-                      : "Add Fee Record"}
-                  </h3>
-
-                  <p>
-                    Enter the student's fee and
-                    payment information.
-                  </p>
-                </div>
-              </div>
-
               <div className="fee-form-grid">
                 <div className="form-group">
-                  <label htmlFor="student_id">
-                    Student
-                  </label>
-
-                  <select
-                    id="student_id"
-                    name="student_id"
-                    value={formData.student_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">
-                      Select student
-                    </option>
-
-                    {students.map((student) => (
-                      <option
-                        key={student.id}
-                        value={student.id}
-                      >
-                        {student.name} — ID{" "}
-                        {student.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="amount">
-                    Amount
+                  <label>
+                    Account Holder
                   </label>
 
                   <input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    placeholder="Enter amount"
-                    value={formData.amount}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="due_date">
-                    Due Date
-                  </label>
-
-                  <input
-                    id="due_date"
-                    name="due_date"
-                    type="date"
-                    value={formData.due_date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="status">
-                    Status
-                  </label>
-
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                  >
-                    <option value="Pending">
-                      Pending
-                    </option>
-
-                    <option value="Paid">
-                      Paid
-                    </option>
-
-                    <option value="Overdue">
-                      Overdue
-                    </option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="payment_date">
-                    Payment Date
-                  </label>
-
-                  <input
-                    id="payment_date"
-                    name="payment_date"
-                    type="date"
                     value={
-                      formData.payment_date
+                      settings.account_holder_name
+                      || ""
                     }
-                    onChange={handleChange}
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          account_holder_name:
+                            event.target.value,
+                        })
+                    }
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="payment_method">
-                    Payment Method
+                  <label>
+                    Bank Name
                   </label>
 
-                  <select
-                    id="payment_method"
-                    name="payment_method"
+                  <input
                     value={
-                      formData.payment_method
+                      settings.bank_name
+                      || ""
                     }
-                    onChange={handleChange}
-                  >
-                    <option value="">
-                      Select method
-                    </option>
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
 
-                    <option value="Cash">
-                      Cash
-                    </option>
+                          bank_name:
+                            event.target.value,
+                        })
+                    }
+                  />
+                </div>
 
-                    <option value="UPI">
-                      UPI
-                    </option>
+                <div className="form-group">
+                  <label>
+                    Account Last 4
+                  </label>
 
-                    <option value="Card">
-                      Card
-                    </option>
+                  <input
+                    maxLength="4"
+                    value={
+                      settings.account_last4
+                      || ""
+                    }
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
 
-                    <option value="Bank Transfer">
-                      Bank Transfer
-                    </option>
-                  </select>
+                          account_last4:
+                            event.target.value,
+                        })
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    IFSC
+                  </label>
+
+                  <input
+                    value={
+                      settings.ifsc_code
+                      || ""
+                    }
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          ifsc_code:
+                            event.target.value,
+                        })
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    UPI ID
+                  </label>
+
+                  <input
+                    value={
+                      settings.upi_id
+                      || ""
+                    }
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          upi_id:
+                            event.target.value,
+                        })
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    Support Email
+                  </label>
+
+                  <input
+                    type="email"
+                    value={
+                      settings.support_email
+                      || ""
+                    }
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          support_email:
+                            event.target.value,
+                        })
+                    }
+                  />
                 </div>
 
                 <div className="form-group form-group-full">
-                  <label htmlFor="description">
-                    Description
+                  <label>
+                    Maintenance Message
                   </label>
 
                   <textarea
-                    id="description"
-                    name="description"
                     rows="3"
-                    placeholder="Enter fee description"
                     value={
-                      formData.description
+                      settings.failure_message
+                      || ""
                     }
-                    onChange={handleChange}
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          failure_message:
+                            event.target.value,
+                        })
+                    }
                   />
                 </div>
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={
+                      Boolean(
+                        settings.payment_enabled
+                      )
+                    }
+                    onChange={
+                      (event) =>
+                        setSettings({
+                          ...settings,
+
+                          payment_enabled:
+                            event.target.checked,
+                        })
+                    }
+                  />
+
+                  {" "}
+                  Online payment enabled
+                </label>
               </div>
 
-              <div className="fee-form-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={closeForm}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
+              <button
+                type="submit"
+                className="primary-button"
+              >
+                Save Payment Settings
+              </button>
+            </form>
+          </section>
+        )}
+
+
+        {isAdmin && (
+          <section
+            className="overview-card"
+            style={{
+              marginBottom:
+                "22px",
+            }}
+          >
+            <div className="overview-header">
+              <h2>
+                Fee Management
+              </h2>
+
+              <button
+                type="button"
+                className="primary-button"
+                onClick={
+                  showForm
+                    ? () =>
+                        setShowForm(false)
+                    : openAdd
+                }
+              >
+                {showForm
+                  ? "Close"
+                  : "+ Add Fee"}
+              </button>
+            </div>
+
+
+            {showForm && (
+              <form
+                className="fee-form"
+                onSubmit={saveFee}
+              >
+                <div className="fee-form-grid">
+                  <div className="form-group">
+                    <label>
+                      Student
+                    </label>
+
+                    <select
+                      required
+                      value={
+                        form.student_id
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            student_id:
+                              event.target.value,
+                          })
+                      }
+                    >
+                      <option value="">
+                        Select Student
+                      </option>
+
+                      {students.map(
+                        (student) => (
+                          <option
+                            key={
+                              student.id
+                            }
+                            value={
+                              student.id
+                            }
+                          >
+                            {student.name}
+                            {" - "}
+                            {student.student_code
+                              || student.id}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Amount
+                    </label>
+
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={
+                        form.amount
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            amount:
+                              event.target.value,
+                          })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Due Date
+                    </label>
+
+                    <input
+                      required
+                      type="date"
+                      value={
+                        form.due_date
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            due_date:
+                              event.target.value,
+                          })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Status
+                    </label>
+
+                    <select
+                      value={
+                        form.status
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            status:
+                              event.target.value,
+                          })
+                      }
+                    >
+                      <option>
+                        Pending
+                      </option>
+
+                      <option>
+                        Paid
+                      </option>
+
+                      <option>
+                        Overdue
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Payment Date
+                    </label>
+
+                    <input
+                      type="date"
+                      value={
+                        form.payment_date
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            payment_date:
+                              event.target.value,
+                          })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>
+                      Payment Method
+                    </label>
+
+                    <input
+                      value={
+                        form.payment_method
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            payment_method:
+                              event.target.value,
+                          })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group form-group-full">
+                    <label>
+                      Description
+                    </label>
+
+                    <textarea
+                      rows="3"
+                      value={
+                        form.description
+                      }
+                      onChange={
+                        (event) =>
+                          setForm({
+                            ...form,
+
+                            description:
+                              event.target.value,
+                          })
+                      }
+                    />
+                  </div>
+                </div>
 
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={saving}
                 >
-                  {saving
-                    ? "Saving..."
-                    : editingFee
+                  {editing
                     ? "Update Fee"
                     : "Add Fee"}
                 </button>
-              </div>
-            </form>
-          )}
-        </section>
-
-        {loading ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ₹
-              </div>
-
-              <h3>
-                Loading Fee Records...
-              </h3>
-
-              <p>
-                Please wait while fee records are
-                loaded.
-              </p>
-            </div>
-          </section>
-        ) : fees.length === 0 ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ₹
-              </div>
-
-              <h3>
-                No Fee Records Found
-              </h3>
-
-              <p>
-                There are currently no fee records.
-              </p>
-            </div>
-          </section>
-        ) : (
-          <section className="overview-card">
-            <div className="fees-table-card">
-              <div className="fees-table-wrapper">
-                <table className="fees-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Student</th>
-                      <th>Amount</th>
-                      <th>Due Date</th>
-                      <th>Payment Date</th>
-                      <th>Status</th>
-                      <th>Payment Method</th>
-                      <th>Description</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {fees.map((fee) => (
-                      <tr key={fee.id}>
-                        <td>{fee.id}</td>
-
-                        <td className="student-name">
-                          {getStudentName(
-                            fee.student_id
-                          )}
-                        </td>
-
-                        <td className="fee-amount">
-                          ₹
-                          {Number(
-                            fee.amount
-                          ).toLocaleString(
-                            "en-IN"
-                          )}
-                        </td>
-
-                        <td>
-                          {fee.due_date}
-                        </td>
-
-                        <td>
-                          {fee.payment_date ||
-                            "Not paid"}
-                        </td>
-
-                        <td>
-                          <span
-                            className={getStatusClass(
-                              fee.status
-                            )}
-                          >
-                            {fee.status}
-                          </span>
-                        </td>
-
-                        <td>
-                          {fee.payment_method ||
-                            "-"}
-                        </td>
-
-                        <td>
-                          {fee.description ||
-                            "-"}
-                        </td>
-
-                        <td>
-                          <div className="fee-actions">
-                            <button
-                              type="button"
-                              className="fee-action-button edit"
-                              onClick={() =>
-                                openEditForm(
-                                  fee
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              className="fee-action-button delete"
-                              onClick={() =>
-                                handleDelete(
-                                  fee
-                                )
-                              }
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              </form>
+            )}
           </section>
         )}
+
+
+        <section className="overview-card">
+          <h2>
+            Fee Records
+          </h2>
+
+          <div className="fees-table-wrapper">
+            <table className="fees-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Method</th>
+
+                  {isAdmin && (
+                    <th>
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                {fees.map(
+                  (fee) => (
+                    <tr key={fee.id}>
+                      <td>
+                        {studentName(
+                          fee.student_id
+                        )}
+                      </td>
+
+                      <td>
+                        ₹{Number(
+                          fee.amount
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                      </td>
+
+                      <td>
+                        {fee.due_date}
+                      </td>
+
+                      <td>
+                        {fee.status}
+                      </td>
+
+                      <td>
+                        {fee.payment_method
+                          || "-"}
+                      </td>
+
+                      {isAdmin && (
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEdit(
+                                fee
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          {" "}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteFee(
+                                fee
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+
+        <section
+          className="overview-card"
+          style={{
+            marginTop:
+              "22px",
+          }}
+        >
+          <h2>
+            Payment Transactions
+          </h2>
+
+          <div className="fees-table-wrapper">
+            <table className="fees-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Student</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Reference</th>
+                  <th>Receipt</th>
+                  <th>Failure</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {transactions.map(
+                  (record) => (
+                    <tr key={record.id}>
+                      <td>
+                        #{record.id}
+                      </td>
+
+                      <td>
+                        {studentName(
+                          record.student_id
+                        )}
+                      </td>
+
+                      <td>
+                        ₹{Number(
+                          record.amount
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                      </td>
+
+                      <td>
+                        {record.status}
+                      </td>
+
+                      <td>
+                        {record.payment_reference
+                          || "-"}
+                      </td>
+
+                      <td>
+                        {record.receipt_number
+                          || "-"}
+                      </td>
+
+                      <td>
+                        {record.failure_reason
+                          || "-"}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
+
 
 export default Fees;

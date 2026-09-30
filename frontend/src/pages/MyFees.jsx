@@ -1,83 +1,212 @@
-import React, { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import Sidebar from "../components/Sidebar";
 import "../components/Sidebar.css";
+
 import api from "../services/api";
 
+
 function MyFees() {
-  const [fees, setFees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [fees, setFees] =
+    useState([]);
+
+  const [transactions, setTransactions] =
+    useState([]);
+
+  const [settings, setSettings] =
+    useState(null);
+
+  const [payment, setPayment] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+
+  const load =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
+
+          const [
+            feesResponse,
+            transactionsResponse,
+            settingsResponse,
+          ] = await Promise.all([
+            api.get(
+              "/fees/my-fees"
+            ),
+
+            api.get(
+              "/fees/my-payment-transactions"
+            ),
+
+            api.get(
+              "/fees/payment-settings"
+            ),
+          ]);
+
+          setFees(
+            feesResponse.data
+          );
+
+          setTransactions(
+            transactionsResponse.data
+          );
+
+          setSettings(
+            settingsResponse.data
+          );
+
+        } catch (error) {
+          setError(
+            error.response
+              ?.data
+              ?.detail
+            ||
+            "Unable to load fee details."
+          );
+
+        } finally {
+          setLoading(false);
+        }
+      },
+      []
+    );
+
 
   useEffect(() => {
-    fetchMyFees();
-  }, []);
+    load();
+  }, [load]);
 
-  const fetchMyFees = async () => {
-    try {
-      setLoading(true);
-      setError("");
 
-      const response = await api.get("/fees/my-fees");
+  const startPayment =
+    async (fee) => {
+      try {
+        setError("");
+        setSuccess("");
 
-      setFees(response.data);
-    } catch (err) {
-      console.error("Failed to load fees:", err);
+        const response =
+          await api.post(
+            `/fees/payments/${fee.id}/start`
+          );
 
-      if (err.response) {
-        setError(
-          err.response.data.detail ||
-            "Unable to load your fee details."
+        setPayment(
+          response.data
         );
-      } else {
-        setError("Unable to connect to the backend.");
+
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to start payment."
+        );
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const totalAmount = fees.reduce(
-    (total, fee) => total + Number(fee.amount || 0),
-    0
-  );
 
-  const pendingAmount = fees
-    .filter(
-      (fee) =>
-        String(fee.status || "").toLowerCase() === "pending"
-    )
-    .reduce(
-      (total, fee) => total + Number(fee.amount || 0),
+  const completePayment =
+    async () => {
+      try {
+        const response =
+          await api.post(
+            `/fees/payments/${payment.transaction_id}/complete-demo`
+          );
+
+        setSuccess(
+          `Payment successful. Receipt: ${response.data.receipt_number}`
+        );
+
+        setPayment(null);
+
+        await load();
+
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Payment could not be completed."
+        );
+      }
+    };
+
+
+  const failPayment =
+    async () => {
+      try {
+        await api.post(
+          `/fees/payments/${payment.transaction_id}/fail-demo`,
+          {
+            reason:
+              "Demo payment failure",
+          }
+        );
+
+        setPayment(null);
+
+        setError(
+          "Demo payment failed and was recorded."
+        );
+
+        await load();
+
+      } catch (error) {
+        setError(
+          error.response
+            ?.data
+            ?.detail
+          ||
+          "Unable to record payment failure."
+        );
+      }
+    };
+
+
+  const total =
+    fees.reduce(
+      (sum, fee) =>
+        sum
+        + Number(
+          fee.amount || 0
+        ),
       0
     );
 
-  const paidAmount = fees
-    .filter(
-      (fee) =>
-        String(fee.status || "").toLowerCase() === "paid"
-    )
-    .reduce(
-      (total, fee) => total + Number(fee.amount || 0),
-      0
-    );
 
-  const getStatusClass = (status) => {
-    const normalizedStatus = String(status || "").toLowerCase();
+  const paid =
+    fees
+      .filter(
+        (fee) =>
+          String(
+            fee.status
+          ).toLowerCase()
+          === "paid"
+      )
+      .reduce(
+        (sum, fee) =>
+          sum
+          + Number(
+            fee.amount || 0
+          ),
+        0
+      );
 
-    if (normalizedStatus === "paid") {
-      return "fee-status paid";
-    }
-
-    if (normalizedStatus === "pending") {
-      return "fee-status pending";
-    }
-
-    if (normalizedStatus === "overdue") {
-      return "fee-status overdue";
-    }
-
-    return "fee-status other";
-  };
 
   return (
     <div className="dashboard-layout">
@@ -87,193 +216,349 @@ function MyFees() {
         <header className="dashboard-header">
           <div>
             <span className="dashboard-label">
-              FINANCE
+              STUDENT FINANCE
             </span>
 
-            <h1>My Fees</h1>
+            <h1>
+              My Fees
+            </h1>
 
             <p>
-              View your hostel fee records and payment details.
+              View and pay your hostel fees.
             </p>
-          </div>
-
-          <div className="dashboard-date">
-            <span>TOTAL RECORDS</span>
-
-            <strong>{fees.length}</strong>
           </div>
         </header>
 
-        {loading && (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ₹
-              </div>
 
-              <h3>Loading Fee Details...</h3>
-
-              <p>
-                Please wait while we load your fee information.
-              </p>
-            </div>
-          </section>
+        {error && (
+          <div className="fees-error">
+            <p>
+              {error}
+            </p>
+          </div>
         )}
 
-        {!loading && error && (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                !
-              </div>
 
-              <h3>Unable to Load Fee Details</h3>
+        {success && (
+          <div
+            style={{
+              marginBottom:
+                "18px",
 
-              <p>{error}</p>
+              padding:
+                "14px",
 
-              <button
-                type="button"
-                className="primary-button"
-                onClick={fetchMyFees}
-                style={{ marginTop: "18px" }}
-              >
-                Try Again
-              </button>
-            </div>
-          </section>
+              borderRadius:
+                "10px",
+
+              background:
+                "#ecfdf3",
+
+              color:
+                "#067647",
+            }}
+          >
+            {success}
+          </div>
         )}
 
-        {!loading && !error && (
+
+        {loading ? (
+          <section className="overview-card">
+            Loading fees...
+          </section>
+
+        ) : (
           <>
             <section className="fees-summary-grid">
               <div className="fees-summary-card">
-                <div className="fees-summary-icon total">
-                  ₹
-                </div>
-
                 <div>
-                  <span>Total Fees</span>
+                  <span>
+                    Total Fees
+                  </span>
 
                   <strong>
-                    ₹{totalAmount.toLocaleString("en-IN")}
+                    ₹{total.toLocaleString(
+                      "en-IN"
+                    )}
                   </strong>
                 </div>
               </div>
 
               <div className="fees-summary-card">
-                <div className="fees-summary-icon pending">
-                  !
-                </div>
-
                 <div>
-                  <span>Pending Amount</span>
+                  <span>
+                    Paid
+                  </span>
 
                   <strong>
-                    ₹{pendingAmount.toLocaleString("en-IN")}
+                    ₹{paid.toLocaleString(
+                      "en-IN"
+                    )}
                   </strong>
                 </div>
               </div>
 
               <div className="fees-summary-card">
-                <div className="fees-summary-icon paid">
-                  ✓
-                </div>
-
                 <div>
-                  <span>Paid Amount</span>
+                  <span>
+                    Pending
+                  </span>
 
                   <strong>
-                    ₹{paidAmount.toLocaleString("en-IN")}
+                    ₹{(
+                      total - paid
+                    ).toLocaleString(
+                      "en-IN"
+                    )}
                   </strong>
                 </div>
               </div>
             </section>
 
+
+            {settings && (
+              <section
+                className="overview-card"
+                style={{
+                  marginBottom:
+                    "22px",
+                }}
+              >
+                <h2>
+                  Online Payment
+                </h2>
+
+                <p>
+                  Current project payment
+                  mode: <strong>Demo/Test</strong>
+                </p>
+
+                <p>
+                  UPI:{" "}
+                  {settings.upi_id
+                    || "Not configured"}
+                </p>
+
+                <p>
+                  Bank:{" "}
+                  {settings.bank_name
+                    || "Not configured"}
+                </p>
+
+                <p>
+                  Account:{" "}
+                  {settings.account_last4
+                    ? `•••• ${settings.account_last4}`
+                    : "Not configured"}
+                </p>
+              </section>
+            )}
+
+
+            {payment && (
+              <section
+                className="overview-card"
+                style={{
+                  marginBottom:
+                    "22px",
+                }}
+              >
+                <h2>
+                  Demo Payment
+                </h2>
+
+                <p>
+                  Amount: ₹
+                  {Number(
+                    payment.amount
+                  ).toLocaleString(
+                    "en-IN"
+                  )}
+                </p>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+
+                    gap:
+                      "12px",
+
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={
+                      completePayment
+                    }
+                  >
+                    Complete Payment
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={
+                      failPayment
+                    }
+                  >
+                    Simulate Failure
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      setPayment(null)
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            )}
+
+
             <section className="overview-card">
-              <div className="overview-header">
-                <div>
-                  <h2>Fee History</h2>
+              <h2>
+                Fee Records
+              </h2>
 
-                  <p>
-                    Your hostel fee records and payment information.
-                  </p>
-                </div>
-              </div>
+              <div className="fees-table-wrapper">
+                <table className="fees-table">
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th>Amount</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                      <th>Payment</th>
+                    </tr>
+                  </thead>
 
-              {fees.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">
-                    ₹
-                  </div>
+                  <tbody>
+                    {fees.map(
+                      (fee) => (
+                        <tr key={fee.id}>
+                          <td>
+                            {fee.description
+                              || `Fee #${fee.id}`}
+                          </td>
 
-                  <h3>No Fee Records</h3>
+                          <td>
+                            ₹{Number(
+                              fee.amount
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </td>
 
-                  <p>
-                    No fee records are currently available for your
-                    account.
-                  </p>
-                </div>
-              ) : (
-                <div className="fees-table-card">
-                  <div className="fees-table-wrapper">
-                    <table className="fees-table">
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Amount</th>
-                          <th>Due Date</th>
-                          <th>Payment Date</th>
-                          <th>Status</th>
-                          <th>Payment Method</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
+                          <td>
+                            {fee.due_date}
+                          </td>
 
-                      <tbody>
-                        {fees.map((fee) => (
-                          <tr key={fee.id}>
-                            <td>{fee.id}</td>
+                          <td>
+                            {fee.status}
+                          </td>
 
-                            <td className="fee-amount">
-                              ₹
-                              {Number(
-                                fee.amount || 0
-                              ).toLocaleString("en-IN")}
-                            </td>
+                          <td>
+                            {String(
+                              fee.status
+                            ).toLowerCase()
+                            === "paid" ? (
+                              <strong>
+                                ✓ Paid
+                              </strong>
 
-                            <td>
-                              {fee.due_date || "-"}
-                            </td>
-
-                            <td>
-                              {fee.payment_date ||
-                                "Not paid"}
-                            </td>
-
-                            <td>
-                              <span
-                                className={getStatusClass(
-                                  fee.status
-                                )}
+                            ) : (
+                              <button
+                                type="button"
+                                className="primary-button"
+                                disabled={
+                                  !settings
+                                  ?.payment_enabled
+                                }
+                                onClick={() =>
+                                  startPayment(
+                                    fee
+                                  )
+                                }
                               >
-                                {fee.status}
-                              </span>
-                            </td>
+                                Pay Online
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-                            <td>
-                              {fee.payment_method || "-"}
-                            </td>
 
-                            <td>
-                              {fee.description || "-"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+            <section
+              className="overview-card"
+              style={{
+                marginTop:
+                  "22px",
+              }}
+            >
+              <h2>
+                Transactions
+              </h2>
+
+              <div className="fees-table-wrapper">
+                <table className="fees-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Reference</th>
+                      <th>Receipt</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {transactions.map(
+                      (record) => (
+                        <tr key={record.id}>
+                          <td>
+                            #{record.id}
+                          </td>
+
+                          <td>
+                            ₹{Number(
+                              record.amount
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </td>
+
+                          <td>
+                            {record.status}
+                          </td>
+
+                          <td>
+                            {record.payment_reference
+                              || "-"}
+                          </td>
+
+                          <td>
+                            {record.receipt_number
+                              || "-"}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </>
         )}
@@ -281,5 +566,6 @@ function MyFees() {
     </div>
   );
 }
+
 
 export default MyFees;
