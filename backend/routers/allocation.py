@@ -7,6 +7,7 @@ from database import get_db
 from models.allocation import RoomAllocation
 from models.student import Student
 from models.room import Room
+from models.fee import Fee
 from models.user import User
 from schemas.allocation import AllocationCreate, AllocationResponse
 from dependencies import require_roles
@@ -16,6 +17,24 @@ router = APIRouter(
     prefix="/allocations",
     tags=["Room Allocations"]
 )
+
+
+def get_academic_year(value: date) -> str:
+    """
+    Hostel academic year runs June to May.
+
+    Examples:
+    2026-10-03 -> 2026-27
+    2027-03-10 -> 2026-27
+    """
+    if value.month >= 6:
+        start_year = value.year
+    else:
+        start_year = value.year - 1
+
+    end_year = start_year + 1
+
+    return f"{start_year}-{str(end_year)[-2:]}"
 
 
 # CREATE ALLOCATION
@@ -67,7 +86,19 @@ def create_allocation(
         )
 
     if room.status != "Available":
-        raise HTTPException(status_code=400, detail="Room is not available for allocation")
+        raise HTTPException(
+            status_code=400,
+            detail="Room is not available for allocation"
+        )
+
+    if room.yearly_fee is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Yearly fee is not configured for this room. "
+                "Set the room yearly fee before allocation."
+            )
+        )
 
     # 4. Check room capacity
     if room.occupied >= room.capacity:
@@ -98,8 +129,61 @@ def create_allocation(
     # 8. Update student's room number
     student.room_number = room.room_number
 
-    # 9. Save everything
+    # 9. Create/update yearly hostel fee automatically
+    allocation_date = (
+        new_allocation.allocation_date
+        or date.today()
+    )
+
+    academic_year = get_academic_year(
+        allocation_date
+    )
+
+    yearly_fee = db.query(Fee).filter(
+        Fee.student_id == student.id,
+        Fee.academic_year == academic_year,
+        Fee.fee_type == "Hostel Room Fee"
+    ).first()
+
+    if yearly_fee is None:
+        yearly_fee = Fee(
+            student_id=student.id,
+            room_id=room.id,
+            academic_year=academic_year,
+            fee_type="Hostel Room Fee",
+            auto_generated=True,
+            amount=float(room.yearly_fee),
+            due_date=allocation_date,
+            payment_date=None,
+            status="Pending",
+            payment_method=None,
+            description=(
+                f"Yearly hostel room fee - "
+                f"{room.room_number} "
+                f"({room.capacity}-Sharing) - "
+                f"{academic_year}"
+            )
+        )
+
+        db.add(yearly_fee)
+
+    elif str(yearly_fee.status).strip().lower() != "paid":
+        yearly_fee.room_id = room.id
+        yearly_fee.amount = float(
+            room.yearly_fee
+        )
+        yearly_fee.auto_generated = True
+
+        yearly_fee.description = (
+            f"Yearly hostel room fee - "
+            f"{room.room_number} "
+            f"({room.capacity}-Sharing) - "
+            f"{academic_year}"
+        )
+
+    # 10. Save allocation + fee together
     db.commit()
+
     db.refresh(new_allocation)
 
     return new_allocation

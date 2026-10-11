@@ -1,1029 +1,3024 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  QRCodeSVG,
+} from "qrcode.react";
+
+import {
+  Html5Qrcode,
+} from "html5-qrcode";
+
 import Sidebar from "../components/Sidebar";
+import Pagination from "../components/Pagination";
+
 import "../components/Sidebar.css";
+import "./Visitors.css";
+
 import api from "../services/api";
 
-function Visitors() {
-  const emptyForm = {
-    student_id: "",
-    visitor_name: "",
-    relation: "Father",
-    phone: "",
-    purpose: "",
-    visit_date: "",
-    check_in: "",
-    check_out: "",
-    status: "Expected",
-    remarks: "",
-  };
 
-  const [visitors, setVisitors] = useState([]);
-  const [students, setStudents] = useState([]);
+const VISITOR_STATUSES = [
+  "Pending",
+  "Approved",
+  "Expected",
+  "Checked In",
+  "Completed",
+  "Rejected",
+  "Cancelled",
+];
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingVisitor, setEditingVisitor] = useState(null);
-
-  const [formData, setFormData] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
-
-  const getUserRole = () => {
-    try {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        return "Guest";
-      }
-
-      const payload = JSON.parse(
-        atob(token.split(".")[1])
+function decodeRole() {
+  try {
+    const token =
+      localStorage.getItem(
+        "access_token"
       );
 
-      return payload.role || "Student";
-    } catch {
-      return "Student";
+    if (!token) {
+      return null;
     }
+
+    let payload =
+      token.split(".")[1];
+
+    payload =
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      payload.length % 4
+    ) {
+      payload += "=";
+    }
+
+    return JSON.parse(
+      atob(payload)
+    ).role;
+
+  } catch {
+    return null;
+  }
+}
+
+
+function getErrorMessage(
+  error,
+  fallback
+) {
+  const detail =
+    error?.response
+      ?.data
+      ?.detail;
+
+  if (
+    typeof detail ===
+    "string"
+  ) {
+    return detail;
+  }
+
+  if (
+    Array.isArray(
+      detail
+    )
+  ) {
+    return detail
+      .map(
+        (item) =>
+          item?.msg ||
+          "Invalid input"
+      )
+      .join(", ");
+  }
+
+  return fallback;
+}
+
+
+function localToday() {
+  const now =
+    new Date();
+
+  const offset =
+    now.getTimezoneOffset()
+    * 60000;
+
+  return new Date(
+    now.getTime() -
+    offset
+  )
+    .toISOString()
+    .slice(
+      0,
+      10
+    );
+}
+
+
+function formatDate(
+  value
+) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(
+      `${value}T00:00:00`
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day:
+        "2-digit",
+
+      month:
+        "short",
+
+      year:
+        "numeric",
+    }
+  );
+}
+
+
+function formatDateTime(
+  value
+) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleString(
+    "en-IN",
+    {
+      day:
+        "2-digit",
+
+      month:
+        "short",
+
+      year:
+        "numeric",
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+    }
+  );
+}
+
+
+function formatDateTimeInput(
+  value
+) {
+  if (!value) {
+    return "";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const hour =
+    String(
+      date.getHours()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const minute =
+    String(
+      date.getMinutes()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  return (
+    `${year}-${month}-${day}`
+    + `T${hour}:${minute}`
+  );
+}
+
+
+function cssValue(
+  value
+) {
+  return String(
+    value || ""
+  )
+    .toLowerCase()
+    .replace(
+      /\s+/g,
+      "-"
+    )
+    .replace(
+      /\//g,
+      "-"
+    );
+}
+
+
+function Visitors() {
+  const role =
+    decodeRole();
+
+  const isStudent =
+    role === "Student";
+
+  const isManagement =
+    role === "Admin" ||
+    role === "Warden";
+
+
+  const emptyForm = {
+    student_id:
+      "",
+
+    visitor_name:
+      "",
+
+    relation:
+      "Father",
+
+    phone:
+      "",
+
+    purpose:
+      "",
+
+    visit_date:
+      localToday(),
+
+    check_in:
+      "",
+
+    check_out:
+      "",
+
+    status:
+      "Pending",
+
+    remarks:
+      "",
   };
 
-  const role = getUserRole();
-  const isStudent = role === "Student";
+
+  const [
+    visitors,
+    setVisitors,
+  ] = useState([]);
+
+  const [
+    students,
+    setStudents,
+  ] = useState([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const [
+    success,
+    setSuccess,
+  ] = useState("");
+
+
+  // ==========================================
+  // CREATE / EDIT
+  // ==========================================
+
+  const [
+    showForm,
+    setShowForm,
+  ] = useState(false);
+
+  const [
+    editingVisitor,
+    setEditingVisitor,
+  ] = useState(null);
+
+  const [
+    formData,
+    setFormData,
+  ] = useState(
+    emptyForm
+  );
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+
+  // ==========================================
+  // FEATURE 9 — FILTERS
+  // ==========================================
+
+  const [
+    search,
+    setSearch,
+  ] = useState("");
+
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] = useState("All");
+
+
+  // ==========================================
+  // FEATURE 9 — PAGINATION
+  // ==========================================
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
+
+  const [
+    pageSize,
+    setPageSize,
+  ] = useState(10);
+
+
+  // ==========================================
+  // QR
+  // ==========================================
+
+  const [
+    expandedPassId,
+    setExpandedPassId,
+  ] = useState(null);
+
+
+  // ==========================================
+  // REVIEW
+  // ==========================================
+
+  const [
+    reviewVisitorRecord,
+    setReviewVisitorRecord,
+  ] = useState(null);
+
+  const [
+    reviewRemarks,
+    setReviewRemarks,
+  ] = useState("");
+
+  const [
+    reviewing,
+    setReviewing,
+  ] = useState(false);
+
+
+  // ==========================================
+  // SCANNER
+  // ==========================================
+
+  const [
+    scannerActive,
+    setScannerActive,
+  ] = useState(false);
+
+  const [
+    scanProcessing,
+    setScanProcessing,
+  ] = useState(false);
+
+  const [
+    manualCode,
+    setManualCode,
+  ] = useState("");
+
+  const [
+    scanResult,
+    setScanResult,
+  ] = useState(null);
+
+  const scannerInstanceRef =
+    useRef(null);
+
+  const scanLockedRef =
+    useRef(false);
+
+
+  // ==========================================
+  // LOAD
+  // ==========================================
+
+  const fetchData =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+
+          setError("");
+
+          if (
+            isStudent
+          ) {
+            const response =
+              await api.get(
+                "/visitors/my-visitors"
+              );
+
+            setVisitors(
+              Array.isArray(
+                response.data
+              )
+                ? response.data
+                : []
+            );
+
+            setStudents([]);
+
+          } else {
+
+            const [
+              visitorResult,
+              studentResult,
+            ] =
+              await Promise.allSettled([
+                api.get(
+                  "/visitors/"
+                ),
+
+                api.get(
+                  "/students/"
+                ),
+              ]);
+
+
+            if (
+              visitorResult.status ===
+              "fulfilled"
+            ) {
+              setVisitors(
+                Array.isArray(
+                  visitorResult
+                    .value
+                    .data
+                )
+                  ? visitorResult
+                      .value
+                      .data
+                  : []
+              );
+
+            } else {
+              throw (
+                visitorResult.reason
+              );
+            }
+
+
+            if (
+              studentResult.status ===
+              "fulfilled"
+            ) {
+              setStudents(
+                Array.isArray(
+                  studentResult
+                    .value
+                    .data
+                )
+                  ? studentResult
+                      .value
+                      .data
+                  : []
+              );
+            }
+          }
+
+        } catch (
+          requestError
+        ) {
+          setVisitors([]);
+
+          setError(
+            getErrorMessage(
+              requestError,
+              "Unable to load visitor records."
+            )
+          );
+
+        } finally {
+          setLoading(false);
+        }
+      },
+      [isStudent]
+    );
+
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [
+    fetchData,
+  ]);
 
-  const getApiErrorMessage = (err, defaultMessage) => {
-    if (!err.response) {
-      return "Unable to connect to the backend.";
-    }
 
-    const detail = err.response.data?.detail;
+  // ==========================================
+  // QR PROCESSING
+  // ==========================================
 
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          const location = Array.isArray(item.loc)
-            ? item.loc[item.loc.length - 1]
-            : "field";
+  const processQrCode =
+    useCallback(
+      async (
+        qrCode
+      ) => {
+        const code =
+          String(
+            qrCode || ""
+          ).trim();
 
-          return `${location}: ${
-            item.msg || "Invalid input"
-          }`;
-        })
-        .join(", ");
-    }
 
-    if (typeof detail === "string") {
-      return detail;
-    }
-
-    return defaultMessage;
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      if (isStudent) {
-        const response = await api.get(
-          "/visitors/my-visitors"
-        );
-
-        setVisitors(response.data || []);
-        setStudents([]);
-      } else {
-        const [
-          visitorsResponse,
-          studentsResponse,
-        ] = await Promise.all([
-          api.get("/visitors/"),
-          api.get("/students/"),
-        ]);
-
-        setVisitors(
-          visitorsResponse.data || []
-        );
-
-        setStudents(
-          studentsResponse.data || []
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Failed to load visitor data:",
-        err
-      );
-
-      setError(
-        getApiErrorMessage(
-          err,
-          "Failed to load visitor data."
-        )
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openAddForm = () => {
-    setEditingVisitor(null);
-
-    const today = new Date()
-      .toISOString()
-      .split("T")[0];
-
-    setFormData({
-      ...emptyForm,
-      visit_date: today,
-    });
-
-    setError("");
-    setShowForm(true);
-  };
-
-  const formatDateTimeForInput = (dateTime) => {
-    if (!dateTime) {
-      return "";
-    }
-
-    const date = new Date(dateTime);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    const year = date.getFullYear();
-
-    const month = String(
-      date.getMonth() + 1
-    ).padStart(2, "0");
-
-    const day = String(
-      date.getDate()
-    ).padStart(2, "0");
-
-    const hours = String(
-      date.getHours()
-    ).padStart(2, "0");
-
-    const minutes = String(
-      date.getMinutes()
-    ).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const openEditForm = (visitor) => {
-    if (isStudent) {
-      return;
-    }
-
-    setEditingVisitor(visitor);
-
-    setFormData({
-      student_id: String(
-        visitor.student_id
-      ),
-      visitor_name:
-        visitor.visitor_name || "",
-      relation:
-        visitor.relation || "Father",
-      phone: visitor.phone || "",
-      purpose: visitor.purpose || "",
-      visit_date:
-        visitor.visit_date || "",
-      check_in: formatDateTimeForInput(
-        visitor.check_in
-      ),
-      check_out: formatDateTimeForInput(
-        visitor.check_out
-      ),
-      status:
-        visitor.status || "Expected",
-      remarks: visitor.remarks || "",
-    });
-
-    setError("");
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingVisitor(null);
-    setFormData(emptyForm);
-    setError("");
-  };
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    try {
-      setSaving(true);
-      setError("");
-
-      if (
-        !isStudent &&
-        !formData.student_id
-      ) {
-        setError("Please select a student.");
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.visitor_name.trim()) {
-        setError(
-          "Please enter the visitor name."
-        );
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.phone.trim()) {
-        setError(
-          "Please enter the visitor phone number."
-        );
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.purpose.trim()) {
-        setError(
-          "Please enter the purpose of visit."
-        );
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.visit_date) {
-        setError(
-          "Please select the visit date."
-        );
-        setSaving(false);
-        return;
-      }
-
-      if (
-        formData.check_in &&
-        formData.check_out &&
-        formData.check_out <
-          formData.check_in
-      ) {
-        setError(
-          "Check-out time cannot be before check-in time."
-        );
-        setSaving(false);
-        return;
-      }
-
-      if (isStudent) {
-        if (editingVisitor) {
+        if (!code) {
           setError(
-            "Students cannot edit visitor requests."
+            "Enter or scan a valid QR pass."
           );
-          setSaving(false);
+
+          scanLockedRef.current =
+            false;
+
           return;
         }
 
-        const payload = {
-          student_id: 0,
-          visitor_name:
-            formData.visitor_name.trim(),
-          relation: formData.relation,
-          phone: formData.phone.trim(),
-          purpose: formData.purpose.trim(),
-          visit_date: formData.visit_date,
-          check_in: formData.check_in
-            ? formData.check_in
-            : null,
-          check_out: formData.check_out
-            ? formData.check_out
-            : null,
-          status: "Pending",
-          remarks:
-            formData.remarks.trim() ||
-            null,
-        };
 
-        await api.post(
-          "/visitors/my-visitor",
-          payload
-        );
-      } else {
-        const payload = {
-          student_id: Number(
-            formData.student_id
-          ),
-          visitor_name:
-            formData.visitor_name.trim(),
-          relation: formData.relation,
-          phone: formData.phone.trim(),
-          purpose: formData.purpose.trim(),
-          visit_date: formData.visit_date,
-          check_in: formData.check_in
-            ? formData.check_in
-            : null,
-          check_out: formData.check_out
-            ? formData.check_out
-            : null,
-          status: formData.status,
-          remarks:
-            formData.remarks.trim() ||
-            null,
-        };
+        try {
+          setScanProcessing(true);
 
-        if (editingVisitor) {
-          await api.put(
-            `/visitors/${editingVisitor.id}`,
-            payload
+          setError("");
+          setSuccess("");
+
+          setScanResult(null);
+
+
+          const response =
+            await api.post(
+              "/visitors/scan-pass",
+              {
+                qr_code:
+                  code,
+              }
+            );
+
+
+          setScanResult(
+            response.data
           );
-        } else {
-          await api.post(
-            "/visitors/",
-            payload
+
+
+          setSuccess(
+            response.data
+              ?.message ||
+            "Visitor QR processed successfully."
+          );
+
+
+          setManualCode("");
+
+
+          await fetchData();
+
+        } catch (
+          requestError
+        ) {
+          setError(
+            getErrorMessage(
+              requestError,
+              "Unable to process visitor QR pass."
+            )
+          );
+
+        } finally {
+          setScanProcessing(false);
+
+          scanLockedRef.current =
+            false;
+        }
+      },
+      [fetchData]
+    );
+
+
+  // ==========================================
+  // CAMERA
+  // ==========================================
+
+  useEffect(() => {
+    if (
+      !scannerActive ||
+      !isManagement
+    ) {
+      return undefined;
+    }
+
+
+    let disposed =
+      false;
+
+
+    const startCamera =
+      async () => {
+        try {
+          const scanner =
+            new Html5Qrcode(
+              "visitor-qr-reader"
+            );
+
+          scannerInstanceRef.current =
+            scanner;
+
+
+          await scanner.start(
+            {
+              facingMode:
+                "environment",
+            },
+
+            {
+              fps:
+                10,
+
+              qrbox: {
+                width:
+                  240,
+
+                height:
+                  240,
+              },
+            },
+
+            async (
+              decodedText
+            ) => {
+              if (
+                disposed ||
+                scanLockedRef.current
+              ) {
+                return;
+              }
+
+              scanLockedRef.current =
+                true;
+
+              await processQrCode(
+                decodedText
+              );
+
+              setScannerActive(
+                false
+              );
+            },
+
+            () => {}
+          );
+
+        } catch (
+          cameraError
+        ) {
+          console.error(
+            "QR scanner error:",
+            cameraError
+          );
+
+          setScannerActive(
+            false
+          );
+
+          setError(
+            "Unable to start the camera scanner. You can enter the QR code manually instead."
           );
         }
+      };
+
+
+    startCamera();
+
+
+    return () => {
+      disposed =
+        true;
+
+      const scanner =
+        scannerInstanceRef.current;
+
+      scannerInstanceRef.current =
+        null;
+
+
+      if (scanner) {
+        scanner
+          .stop()
+          .catch(
+            () => {}
+          )
+          .finally(
+            () => {
+              try {
+                scanner.clear();
+              } catch {
+                // Already cleared.
+              }
+            }
+          );
+      }
+    };
+
+  }, [
+    scannerActive,
+    isManagement,
+    processQrCode,
+  ]);
+
+
+  // ==========================================
+  // SUMMARY
+  // ==========================================
+
+  const summary =
+    useMemo(
+      () => {
+        const data = {
+          total:
+            visitors.length,
+
+          pending:
+            0,
+
+          approved:
+            0,
+
+          checkedIn:
+            0,
+
+          completed:
+            0,
+        };
+
+
+        visitors.forEach(
+          (
+            visitor
+          ) => {
+
+            if (
+              visitor.status ===
+              "Pending"
+            ) {
+              data.pending += 1;
+            }
+
+            if (
+              visitor.status ===
+              "Approved"
+            ) {
+              data.approved += 1;
+            }
+
+            if (
+              visitor.status ===
+              "Checked In"
+            ) {
+              data.checkedIn += 1;
+            }
+
+            if (
+              visitor.status ===
+              "Completed"
+            ) {
+              data.completed += 1;
+            }
+          }
+        );
+
+
+        return data;
+      },
+      [visitors]
+    );
+
+
+  // ==========================================
+  // FILTER
+  // ==========================================
+
+  const filteredVisitors =
+    useMemo(
+      () => {
+        const term =
+          search
+            .trim()
+            .toLowerCase();
+
+
+        return visitors.filter(
+          (
+            visitor
+          ) => {
+
+            const searchable =
+              [
+                visitor.visitor_name,
+                visitor.relation,
+                visitor.phone,
+                visitor.purpose,
+                visitor.student_name,
+                visitor.student_code,
+                visitor.status,
+                visitor.visit_date,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+
+            const searchMatch =
+              !term ||
+              searchable.includes(
+                term
+              );
+
+
+            const statusMatch =
+              statusFilter ===
+                "All" ||
+              visitor.status ===
+                statusFilter;
+
+
+            return (
+              searchMatch &&
+              statusMatch
+            );
+          }
+        );
+      },
+      [
+        visitors,
+        search,
+        statusFilter,
+      ]
+    );
+
+
+  // ==========================================
+  // PAGINATION
+  // ==========================================
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredVisitors.length /
+        pageSize
+      )
+    );
+
+
+  const paginatedVisitors =
+    useMemo(
+      () => {
+
+        const start =
+          (
+            currentPage - 1
+          ) *
+          pageSize;
+
+
+        return filteredVisitors.slice(
+          start,
+          start + pageSize
+        );
+      },
+      [
+        filteredVisitors,
+        currentPage,
+        pageSize,
+      ]
+    );
+
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    statusFilter,
+    pageSize,
+  ]);
+
+
+  useEffect(() => {
+    if (
+      currentPage >
+      totalPages
+    ) {
+      setCurrentPage(
+        totalPages
+      );
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
+
+  // ==========================================
+  // FORM
+  // ==========================================
+
+  const openAddForm =
+    () => {
+      setEditingVisitor(null);
+
+      setFormData({
+        ...emptyForm,
+
+        visit_date:
+          localToday(),
+      });
+
+      setShowForm(true);
+
+      setError("");
+      setSuccess("");
+    };
+
+
+  const openEditForm =
+    (
+      visitor
+    ) => {
+      if (
+        !isManagement
+      ) {
+        return;
       }
 
-      await fetchData();
 
-      closeForm();
-    } catch (err) {
-      console.error(
-        "Failed to save visitor:",
-        err
+      setEditingVisitor(
+        visitor
       );
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to save visitor record."
-        )
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
 
-  const handleDelete = async (visitor) => {
-    if (isStudent) {
-      return;
-    }
+      setFormData({
+        student_id:
+          String(
+            visitor.student_id ||
+            ""
+          ),
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete visitor record #${visitor.id}?`
-    );
+        visitor_name:
+          visitor.visitor_name ||
+          "",
 
-    if (!confirmed) {
-      return;
-    }
+        relation:
+          visitor.relation ||
+          "Other",
 
-    try {
+        phone:
+          visitor.phone ||
+          "",
+
+        purpose:
+          visitor.purpose ||
+          "",
+
+        visit_date:
+          visitor.visit_date ||
+          localToday(),
+
+        check_in:
+          formatDateTimeInput(
+            visitor.check_in
+          ),
+
+        check_out:
+          formatDateTimeInput(
+            visitor.check_out
+          ),
+
+        status:
+          visitor.status ||
+          "Pending",
+
+        remarks:
+          visitor.remarks ||
+          "",
+      });
+
+
+      setShowForm(true);
+
       setError("");
+      setSuccess("");
 
-      await api.delete(
-        `/visitors/${visitor.id}`
+
+      window.scrollTo({
+        top: 0,
+        behavior:
+          "smooth",
+      });
+    };
+
+
+  const closeForm =
+    () => {
+      setShowForm(false);
+
+      setEditingVisitor(null);
+
+      setFormData(
+        emptyForm
+      );
+    };
+
+
+  const handleChange =
+    (
+      event
+    ) => {
+      const {
+        name,
+        value,
+      } =
+        event.target;
+
+      setFormData(
+        (
+          previous
+        ) => ({
+          ...previous,
+
+          [name]:
+            value,
+        })
+      );
+    };
+
+
+  // ==========================================
+  // SAVE
+  // ==========================================
+
+  const handleSubmit =
+    async (
+      event
+    ) => {
+      event.preventDefault();
+
+
+      if (
+        !formData
+          .visitor_name
+          .trim()
+      ) {
+        setError(
+          "Enter the visitor name."
+        );
+
+        return;
+      }
+
+
+      if (
+        !formData
+          .phone
+          .trim()
+      ) {
+        setError(
+          "Enter the visitor phone number."
+        );
+
+        return;
+      }
+
+
+      if (
+        !formData
+          .purpose
+          .trim()
+      ) {
+        setError(
+          "Enter the purpose of visit."
+        );
+
+        return;
+      }
+
+
+      if (
+        !formData.visit_date
+      ) {
+        setError(
+          "Select the visit date."
+        );
+
+        return;
+      }
+
+
+      try {
+        setSaving(true);
+
+        setError("");
+        setSuccess("");
+
+
+        if (
+          isStudent
+        ) {
+
+          await api.post(
+            "/visitors/my-visitor",
+            {
+              visitor_name:
+                formData
+                  .visitor_name
+                  .trim(),
+
+              relation:
+                formData
+                  .relation
+                  .trim(),
+
+              phone:
+                formData
+                  .phone
+                  .trim(),
+
+              purpose:
+                formData
+                  .purpose
+                  .trim(),
+
+              visit_date:
+                formData.visit_date,
+
+              remarks:
+                formData
+                  .remarks
+                  .trim() ||
+                null,
+            }
+          );
+
+
+          setSuccess(
+            "Visitor request submitted. A QR pass will appear after approval."
+          );
+
+        } else {
+
+          if (
+            !formData.student_id
+          ) {
+            setError(
+              "Select a student."
+            );
+
+            return;
+          }
+
+
+          const payload = {
+            student_id:
+              Number(
+                formData.student_id
+              ),
+
+            visitor_name:
+              formData
+                .visitor_name
+                .trim(),
+
+            relation:
+              formData
+                .relation
+                .trim(),
+
+            phone:
+              formData
+                .phone
+                .trim(),
+
+            purpose:
+              formData
+                .purpose
+                .trim(),
+
+            visit_date:
+              formData.visit_date,
+
+            check_in:
+              formData.check_in ||
+              null,
+
+            check_out:
+              formData.check_out ||
+              null,
+
+            status:
+              formData.status,
+
+            remarks:
+              formData
+                .remarks
+                .trim() ||
+              null,
+          };
+
+
+          if (
+            editingVisitor
+          ) {
+            await api.put(
+              `/visitors/${editingVisitor.id}`,
+              payload
+            );
+
+            setSuccess(
+              "Visitor record updated."
+            );
+
+          } else {
+
+            await api.post(
+              "/visitors/",
+              payload
+            );
+
+            setSuccess(
+              "Visitor record created."
+            );
+          }
+        }
+
+
+        closeForm();
+
+        await fetchData();
+
+      } catch (
+        requestError
+      ) {
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to save visitor record."
+          )
+        );
+
+      } finally {
+        setSaving(false);
+      }
+    };
+
+
+  // ==========================================
+  // STUDENT CANCEL
+  // ==========================================
+
+  const cancelMyRequest =
+    async (
+      visitor
+    ) => {
+
+      const confirmed =
+        window.confirm(
+          `Cancel visitor request for ${visitor.visitor_name}?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      try {
+        setError("");
+        setSuccess("");
+
+
+        await api.delete(
+          `/visitors/${visitor.id}/cancel-my-request`
+        );
+
+
+        setSuccess(
+          "Visitor request cancelled."
+        );
+
+
+        await fetchData();
+
+      } catch (
+        requestError
+      ) {
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to cancel visitor request."
+          )
+        );
+      }
+    };
+
+
+  // ==========================================
+  // REVIEW
+  // ==========================================
+
+  const openReview =
+    (
+      visitor
+    ) => {
+      setReviewVisitorRecord(
+        visitor
       );
 
-      await fetchData();
-    } catch (err) {
-      console.error(
-        "Failed to delete visitor:",
-        err
+      setReviewRemarks(
+        visitor.remarks ||
+        ""
       );
 
-      setError(
-        getApiErrorMessage(
-          err,
-          "Unable to delete visitor record."
-        )
+      setError("");
+      setSuccess("");
+    };
+
+
+  const reviewVisitor =
+    async (
+      decision
+    ) => {
+
+      if (
+        !reviewVisitorRecord
+      ) {
+        return;
+      }
+
+
+      try {
+        setReviewing(true);
+
+        setError("");
+        setSuccess("");
+
+
+        await api.put(
+          `/visitors/${reviewVisitorRecord.id}/review`,
+          {
+            decision,
+
+            remarks:
+              reviewRemarks
+                .trim() ||
+              null,
+          }
+        );
+
+
+        setSuccess(
+          decision ===
+            "Approved"
+            ? "Visitor request approved. QR pass generated successfully."
+            : "Visitor request rejected."
+        );
+
+
+        setReviewVisitorRecord(
+          null
+        );
+
+        setReviewRemarks("");
+
+
+        await fetchData();
+
+      } catch (
+        requestError
+      ) {
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to review visitor request."
+          )
+        );
+
+      } finally {
+        setReviewing(false);
+      }
+    };
+
+
+  // ==========================================
+  // DELETE
+  // ==========================================
+
+  const deleteVisitor =
+    async (
+      visitor
+    ) => {
+
+      const confirmed =
+        window.confirm(
+          `Delete visitor record for ${visitor.visitor_name}?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      try {
+        setError("");
+        setSuccess("");
+
+
+        await api.delete(
+          `/visitors/${visitor.id}`
+        );
+
+
+        setSuccess(
+          "Visitor record deleted."
+        );
+
+
+        await fetchData();
+
+      } catch (
+        requestError
+      ) {
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to delete visitor record."
+          )
+        );
+      }
+    };
+
+
+  const submitManualCode =
+    async (
+      event
+    ) => {
+      event.preventDefault();
+
+      if (
+        scanProcessing
+      ) {
+        return;
+      }
+
+      await processQrCode(
+        manualCode
       );
-    }
-  };
+    };
 
-  const getStudentName = (studentId) => {
-    const student = students.find(
-      (item) => item.id === studentId
-    );
-
-    return student
-      ? student.name
-      : `Student #${studentId}`;
-  };
-
-  const getStatusClass = (status) => {
-    const normalizedStatus = String(
-      status || ""
-    ).toLowerCase();
-
-    if (
-      normalizedStatus === "approved"
-    ) {
-      return "visitor-status approved";
-    }
-
-    if (
-      normalizedStatus === "rejected"
-    ) {
-      return "visitor-status rejected";
-    }
-
-    if (
-      normalizedStatus === "pending"
-    ) {
-      return "visitor-status pending";
-    }
-
-    if (
-      normalizedStatus === "expected"
-    ) {
-      return "visitor-status expected";
-    }
-
-    if (
-      normalizedStatus === "completed"
-    ) {
-      return "visitor-status completed";
-    }
-
-    return "visitor-status other";
-  };
-
-  const formatDateTime = (dateTime) => {
-    if (!dateTime) {
-      return "-";
-    }
-
-    const date = new Date(dateTime);
-
-    if (Number.isNaN(date.getTime())) {
-      return dateTime;
-    }
-
-    return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   return (
     <div className="dashboard-layout">
+
       <Sidebar />
 
+
       <main className="dashboard-main">
+
         <header className="dashboard-header">
+
           <div>
+
             <span className="dashboard-label">
-              {isStudent
-                ? "STUDENT"
-                : "MANAGEMENT"}
+              VISITOR MANAGEMENT
             </span>
 
-            <h1>Visitors</h1>
+            <h1>
+              Visitors
+            </h1>
 
             <p>
+
               {isStudent
-                ? "Submit and track your hostel visitor requests."
-                : "Manage visitor records, visit details and visitor status."}
+                ? "Request visitor access and use secure QR visitor passes."
+                : "Approve visitors, issue QR passes and manage hostel gate entry."}
+
             </p>
+
           </div>
 
+
           <div className="dashboard-date">
+
             <span>
+
               {isStudent
-                ? "My Visitors"
-                : "Total Records"}
+                ? "MY VISITORS"
+                : "INSIDE HOSTEL"}
+
             </span>
 
             <strong>
-              {visitors.length}
+
+              {isStudent
+                ? visitors.length
+                : summary.checkedIn}
+
             </strong>
+
           </div>
+
         </header>
 
+
         {error && (
-          <div className="visitor-error">
-            <p>{error}</p>
+          <div className="visitor-alert error">
+            {error}
           </div>
         )}
 
-        <section className="overview-card visitor-management-card">
-          <div className="overview-header">
+
+        {success && (
+          <div className="visitor-alert success">
+            {success}
+          </div>
+        )}
+
+
+        <section className="visitor-summary-grid">
+
+          <div className="visitor-summary-card">
+            <div className="visitor-summary-icon">
+              ♙
+            </div>
+
             <div>
-              <h2>
+              <span>Total</span>
+
+              <strong>
+                {summary.total}
+              </strong>
+            </div>
+          </div>
+
+
+          <div className="visitor-summary-card">
+            <div className="visitor-summary-icon pending">
+              ◷
+            </div>
+
+            <div>
+              <span>Pending</span>
+
+              <strong>
+                {summary.pending}
+              </strong>
+            </div>
+          </div>
+
+
+          <div className="visitor-summary-card">
+            <div className="visitor-summary-icon approved">
+              ▣
+            </div>
+
+            <div>
+              <span>Approved</span>
+
+              <strong>
+                {summary.approved}
+              </strong>
+            </div>
+          </div>
+
+
+          <div className="visitor-summary-card">
+            <div className="visitor-summary-icon checked-in">
+              ⇥
+            </div>
+
+            <div>
+              <span>Checked In</span>
+
+              <strong>
+                {summary.checkedIn}
+              </strong>
+            </div>
+          </div>
+
+
+          <div className="visitor-summary-card">
+            <div className="visitor-summary-icon completed">
+              ✓
+            </div>
+
+            <div>
+              <span>Completed</span>
+
+              <strong>
+                {summary.completed}
+              </strong>
+            </div>
+          </div>
+
+        </section>
+
+
+        {/* SCANNER */}
+
+        {isManagement && (
+
+          <section className="overview-card visitor-scanner-card">
+
+            <div className="visitor-section-header">
+
+              <div>
+
+                <span className="visitor-eyebrow">
+                  GATE ACCESS
+                </span>
+
+                <h2>
+                  QR Visitor Scanner
+                </h2>
+
+                <p>
+                  First scan checks in.
+                  Second scan checks out.
+                </p>
+
+              </div>
+
+
+              <button
+                type="button"
+                className={
+                  scannerActive
+                    ? "visitor-stop-scanner"
+                    : "primary-button"
+                }
+                onClick={() =>
+                  setScannerActive(
+                    (
+                      previous
+                    ) =>
+                      !previous
+                  )
+                }
+              >
+
+                {scannerActive
+                  ? "Stop Scanner"
+                  : "▣ Scan QR Pass"}
+
+              </button>
+
+            </div>
+
+
+            {scannerActive && (
+
+              <div className="visitor-camera-wrap">
+
+                <div
+                  id="visitor-qr-reader"
+                  className="visitor-qr-reader"
+                />
+
+                <p>
+                  Point the camera at the visitor QR pass.
+                </p>
+
+              </div>
+
+            )}
+
+
+            <form
+              className="visitor-manual-scan"
+              onSubmit={
+                submitManualCode
+              }
+            >
+
+              <div>
+
+                <label>
+                  Manual QR Code
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Paste or enter visitor QR token..."
+                  value={
+                    manualCode
+                  }
+                  onChange={
+                    (
+                      event
+                    ) =>
+                      setManualCode(
+                        event.target.value
+                      )
+                  }
+                />
+
+              </div>
+
+
+              <button
+                type="submit"
+                disabled={
+                  scanProcessing ||
+                  !manualCode.trim()
+                }
+              >
+
+                {scanProcessing
+                  ? "Processing..."
+                  : "Process Pass"}
+
+              </button>
+
+            </form>
+
+
+            {scanResult && (
+
+              <div
+                className={
+                  `visitor-scan-result ${
+                    scanResult.action ===
+                    "Check In"
+                      ? "check-in"
+                      : "check-out"
+                  }`
+                }
+              >
+
+                <div className="visitor-scan-result-icon">
+
+                  {scanResult.action ===
+                  "Check In"
+                    ? "⇥"
+                    : "⇤"}
+
+                </div>
+
+
+                <div>
+
+                  <span>
+                    {scanResult.action}
+                  </span>
+
+                  <strong>
+                    {
+                      scanResult
+                        .visitor
+                        ?.visitor_name
+                    }
+                  </strong>
+
+                  <p>
+                    {scanResult.message}
+                  </p>
+
+                </div>
+
+              </div>
+
+            )}
+
+          </section>
+
+        )}
+
+
+        {/* CREATE */}
+
+        <section className="overview-card visitor-create-card">
+
+          <div className="visitor-section-header">
+
+            <div>
+
+              <span className="visitor-eyebrow">
+
                 {isStudent
-                  ? "My Visitors"
-                  : "Visitor Records"}
+                  ? "VISITOR REQUEST"
+                  : "VISITOR RECORD"}
+
+              </span>
+
+              <h2>
+
+                {isStudent
+                  ? "Request Visitor Pass"
+                  : "Visitor Registration"}
+
               </h2>
 
-              <p>
-                {isStudent
-                  ? "View your visitor requests and their current status."
-                  : "Add, update and manage hostel visitor records."}
-              </p>
             </div>
+
 
             <button
               type="button"
               className="primary-button"
-              onClick={
-                showForm
-                  ? closeForm
-                  : openAddForm
-              }
+              onClick={() => {
+
+                if (
+                  showForm
+                ) {
+                  closeForm();
+
+                } else {
+                  openAddForm();
+                }
+
+              }}
             >
+
               {showForm
                 ? "Close Form"
+                : isStudent
+                ? "+ Request Visitor"
                 : "+ Add Visitor"}
+
             </button>
+
           </div>
 
+
           {showForm && (
+
             <form
-              className="visitor-management-form"
-              onSubmit={handleSubmit}
+              className="visitor-form"
+              onSubmit={
+                handleSubmit
+              }
             >
-              <div className="visitor-management-form-title">
-                <div>
-                  <h3>
-                    {isStudent
-                      ? "Submit Visitor Request"
-                      : editingVisitor
-                      ? "Edit Visitor"
-                      : "Add Visitor"}
-                  </h3>
 
-                  <p>
-                    {isStudent
-                      ? "Enter the visitor information and visit details."
-                      : "Enter the visitor information and visit details."}
-                  </p>
-                </div>
-              </div>
+              <div className="visitor-form-grid">
 
-              <div className="visitor-management-form-grid">
+
                 {!isStudent && (
-                  <div className="form-group">
-                    <label htmlFor="student_id">
-                      Student
-                    </label>
+
+                  <label>
+
+                    Student
 
                     <select
-                      id="student_id"
                       name="student_id"
                       value={
                         formData.student_id
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
                       required
                     >
+
                       <option value="">
                         Select student
                       </option>
 
+
                       {students.map(
-                        (student) => (
-                          <option
-                            key={
-                              student.id
-                            }
-                            value={
-                              student.id
-                            }
-                          >
-                            {student.name} — ID{" "}
-                            {student.id}
-                          </option>
+                        (
+                          student
+                        ) => (
+
+                        <option
+                          key={
+                            student.id
+                          }
+                          value={
+                            student.id
+                          }
+                        >
+
+                          {student.name}
+
+                          {student.student_code
+                            ? ` — ${student.student_code}`
+                            : ""}
+
+                        </option>
+
                         )
                       )}
-                    </select>
-                  </div>
-                )}
 
-                <div className="form-group">
-                  <label htmlFor="visitor_name">
-                    Visitor Name
+                    </select>
+
                   </label>
 
+                )}
+
+
+                <label>
+
+                  Visitor Name
+
                   <input
-                    id="visitor_name"
-                    name="visitor_name"
                     type="text"
-                    placeholder="Enter visitor name"
+                    name="visitor_name"
+                    maxLength="100"
                     value={
                       formData.visitor_name
                     }
-                    onChange={handleChange}
+                    onChange={
+                      handleChange
+                    }
                     required
                   />
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="relation">
-                    Relation
-                  </label>
+                </label>
+
+
+                <label>
+
+                  Relation
 
                   <select
-                    id="relation"
                     name="relation"
                     value={
                       formData.relation
                     }
-                    onChange={handleChange}
-                    required
+                    onChange={
+                      handleChange
+                    }
                   >
-                    <option value="Father">
-                      Father
-                    </option>
 
-                    <option value="Mother">
-                      Mother
-                    </option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Sister">Sister</option>
+                    <option value="Guardian">Guardian</option>
+                    <option value="Relative">Relative</option>
+                    <option value="Friend">Friend</option>
+                    <option value="Other">Other</option>
 
-                    <option value="Brother">
-                      Brother
-                    </option>
-
-                    <option value="Sister">
-                      Sister
-                    </option>
-
-                    <option value="Friend">
-                      Friend
-                    </option>
-
-                    <option value="Relative">
-                      Relative
-                    </option>
-
-                    <option value="Other">
-                      Other
-                    </option>
                   </select>
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="phone">
-                    Phone Number
-                  </label>
+                </label>
+
+
+                <label>
+
+                  Phone Number
 
                   <input
-                    id="phone"
+                    type="text"
                     name="phone"
-                    type="tel"
-                    placeholder="Enter phone number"
+                    maxLength="15"
                     value={
                       formData.phone
                     }
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="purpose">
-                    Purpose
-                  </label>
-
-                  <input
-                    id="purpose"
-                    name="purpose"
-                    type="text"
-                    placeholder="Reason for visit"
-                    value={
-                      formData.purpose
+                    onChange={
+                      handleChange
                     }
-                    onChange={handleChange}
                     required
                   />
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="visit_date">
-                    Visit Date
-                  </label>
+                </label>
+
+
+                <label>
+
+                  Visit Date
 
                   <input
-                    id="visit_date"
-                    name="visit_date"
                     type="date"
+                    name="visit_date"
+                    min={
+                      isStudent
+                        ? localToday()
+                        : undefined
+                    }
                     value={
                       formData.visit_date
                     }
-                    onChange={handleChange}
+                    onChange={
+                      handleChange
+                    }
                     required
                   />
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="check_in">
-                    Check-in
-                  </label>
+                </label>
 
-                  <input
-                    id="check_in"
-                    name="check_in"
-                    type="datetime-local"
-                    value={
-                      formData.check_in
-                    }
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="check_out">
-                    Check-out
-                  </label>
-
-                  <input
-                    id="check_out"
-                    name="check_out"
-                    type="datetime-local"
-                    value={
-                      formData.check_out
-                    }
-                    onChange={handleChange}
-                  />
-                </div>
 
                 {!isStudent && (
-                  <div className="form-group">
-                    <label htmlFor="status">
-                      Status
-                    </label>
+
+                  <label>
+
+                    Status
 
                     <select
-                      id="status"
                       name="status"
                       value={
                         formData.status
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
                     >
-                      <option value="Expected">
-                        Expected
-                      </option>
 
-                      <option value="Pending">
-                        Pending
-                      </option>
+                      {VISITOR_STATUSES.map(
+                        (
+                          status
+                        ) => (
 
-                      <option value="Approved">
-                        Approved
-                      </option>
+                        <option
+                          key={
+                            status
+                          }
+                          value={
+                            status
+                          }
+                        >
+                          {status}
+                        </option>
 
-                      <option value="Rejected">
-                        Rejected
-                      </option>
+                        )
+                      )}
 
-                      <option value="Completed">
-                        Completed
-                      </option>
                     </select>
-                  </div>
-                )}
 
-                <div className="form-group form-group-full">
-                  <label htmlFor="remarks">
-                    Remarks
                   </label>
 
+                )}
+
+
+                {!isStudent && (
+
+                  <label>
+
+                    Check In
+
+                    <input
+                      type="datetime-local"
+                      name="check_in"
+                      value={
+                        formData.check_in
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                  </label>
+
+                )}
+
+
+                {!isStudent && (
+
+                  <label>
+
+                    Check Out
+
+                    <input
+                      type="datetime-local"
+                      name="check_out"
+                      value={
+                        formData.check_out
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                  </label>
+
+                )}
+
+
+                <label className="visitor-purpose-field">
+
+                  Purpose of Visit
+
+                  <input
+                    type="text"
+                    name="purpose"
+                    maxLength="255"
+                    value={
+                      formData.purpose
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    required
+                  />
+
+                </label>
+
+
+                <label className="visitor-remarks-field">
+
+                  Remarks
+
                   <textarea
-                    id="remarks"
                     name="remarks"
-                    rows="3"
-                    placeholder="Enter remarks"
+                    rows="4"
+                    maxLength="500"
                     value={
                       formData.remarks
                     }
-                    onChange={handleChange}
+                    onChange={
+                      handleChange
+                    }
                   />
+
+                </label>
+
+              </div>
+
+
+              <div className="visitor-form-footer">
+
+                <p>
+                  Approved requests automatically receive a secure QR visitor pass.
+                </p>
+
+
+                <div>
+
+                  <button
+                    type="button"
+                    className="visitor-secondary-button"
+                    onClick={
+                      closeForm
+                    }
+                  >
+                    Cancel
+                  </button>
+
+
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={
+                      saving
+                    }
+                  >
+
+                    {saving
+                      ? "Saving..."
+                      : isStudent
+                      ? "Submit Request"
+                      : editingVisitor
+                      ? "Update Visitor"
+                      : "Add Visitor"}
+
+                  </button>
+
                 </div>
+
               </div>
 
-              <div className="visitor-management-form-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={closeForm}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={saving}
-                >
-                  {saving
-                    ? "Submitting..."
-                    : isStudent
-                    ? "Submit Visitor"
-                    : editingVisitor
-                    ? "Update Visitor"
-                    : "Add Visitor"}
-                </button>
-              </div>
             </form>
+
           )}
+
         </section>
 
-        {loading ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ♙
-              </div>
 
-              <h3>
-                Loading Visitor Records...
-              </h3>
+        {/* RECORDS */}
 
-              <p>
-                Please wait while visitor
-                records are loaded.
-              </p>
-            </div>
-          </section>
-        ) : visitors.length === 0 ? (
-          <section className="overview-card">
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                ♙
-              </div>
+        <section className="overview-card visitor-record-card">
 
-              <h3>
-                No Visitor Records Found
-              </h3>
+          <div className="visitor-section-header">
 
-              <p>
+            <div>
+
+              <span className="visitor-eyebrow">
+                RECORDS
+              </span>
+
+              <h2>
+
                 {isStudent
-                  ? "You currently have no visitor requests."
-                  : "There are currently no visitor records."}
+                  ? "My Visitor Passes"
+                  : "Visitor Requests & Passes"}
+
+              </h2>
+
+              <p>
+                Search, filter and manage visitor history.
               </p>
+
             </div>
-          </section>
-        ) : (
-          <section className="overview-card">
-            <div className="visitor-management-table-card">
-              <div className="visitor-management-table-wrapper">
-                <table className="visitor-management-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
 
-                      {!isStudent && (
-                        <th>Student</th>
-                      )}
 
-                      <th>Visitor Name</th>
-                      <th>Relation</th>
-                      <th>Phone</th>
-                      <th>Purpose</th>
-                      <th>Visit Date</th>
-                      <th>Check-in</th>
-                      <th>Check-out</th>
-                      <th>Status</th>
-                      <th>Remarks</th>
+            <span className="visitor-result-count">
 
-                      {!isStudent && (
-                        <th>Actions</th>
-                      )}
-                    </tr>
-                  </thead>
+              {filteredVisitors.length}
+              {" "}
+              {
+                filteredVisitors.length ===
+                1
+                  ? "record"
+                  : "records"
+              }
 
-                  <tbody>
-                    {visitors.map(
-                      (visitor) => (
-                        <tr
-                          key={
-                            visitor.id
+            </span>
+
+          </div>
+
+
+          <div className="visitor-filter-row">
+
+            <div className="visitor-search">
+
+              <span>
+                ⌕
+              </span>
+
+              <input
+                type="search"
+                placeholder="Search visitor, student, phone or purpose..."
+                value={
+                  search
+                }
+                onChange={
+                  (
+                    event
+                  ) =>
+                    setSearch(
+                      event.target.value
+                    )
+                }
+              />
+
+            </div>
+
+
+            <select
+              value={
+                statusFilter
+              }
+              onChange={
+                (
+                  event
+                ) =>
+                  setStatusFilter(
+                    event.target.value
+                  )
+              }
+            >
+
+              <option value="All">
+                All Status
+              </option>
+
+
+              {VISITOR_STATUSES.map(
+                (
+                  status
+                ) => (
+
+                <option
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </option>
+
+                )
+              )}
+
+            </select>
+
+
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+
+                setStatusFilter(
+                  "All"
+                );
+              }}
+            >
+              Clear
+            </button>
+
+          </div>
+
+
+          {loading ? (
+
+            <div className="visitor-empty">
+
+              <span>♙</span>
+
+              <strong>
+                Loading visitor records...
+              </strong>
+
+            </div>
+
+          ) : filteredVisitors.length ===
+            0 ? (
+
+            <div className="visitor-empty">
+
+              <span>▣</span>
+
+              <strong>
+                No matching visitor records
+              </strong>
+
+              <p>
+                Try changing your search or status filter.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <>
+
+              <div className="visitor-list">
+
+                {paginatedVisitors.map(
+                  (
+                    visitor
+                  ) => {
+
+                  const passExpanded =
+                    expandedPassId ===
+                    visitor.id;
+
+
+                  return (
+
+                    <article
+                      className="visitor-record"
+                      key={
+                        visitor.id
+                      }
+                    >
+
+                      <div className="visitor-record-header">
+
+                        <div className="visitor-avatar">
+
+                          {
+                            visitor
+                              .visitor_name
+                              ?.charAt(0)
+                              ?.toUpperCase()
+                            ||
+                            "V"
+                          }
+
+                        </div>
+
+
+                        <div className="visitor-record-main">
+
+                          <span className="visitor-record-id">
+                            VISITOR #{visitor.id}
+                          </span>
+
+                          <h3>
+                            {visitor.visitor_name}
+                          </h3>
+
+                          <p>
+                            {visitor.relation}
+                            {" · "}
+                            {visitor.phone}
+                          </p>
+
+                        </div>
+
+
+                        <span
+                          className={
+                            `visitor-status status-${cssValue(
+                              visitor.status
+                            )}`
                           }
                         >
-                          <td>
-                            {visitor.id}
-                          </td>
+                          {visitor.status}
+                        </span>
 
-                          {!isStudent && (
-                            <td className="student-name">
-                              {getStudentName(
-                                visitor.student_id
-                              )}
-                            </td>
-                          )}
+                      </div>
 
-                          <td className="visitor-management-name">
-                            {
-                              visitor.visitor_name
-                            }
-                          </td>
 
-                          <td>
-                            {
-                              visitor.relation
-                            }
-                          </td>
+                      <div className="visitor-record-details">
 
-                          <td>
-                            {visitor.phone}
-                          </td>
+                        {isManagement && (
 
-                          <td className="visitor-management-purpose">
-                            {visitor.purpose}
-                          </td>
+                          <div>
 
-                          <td>
-                            {
-                              visitor.visit_date
-                            }
-                          </td>
-
-                          <td>
-                            {formatDateTime(
-                              visitor.check_in
-                            )}
-                          </td>
-
-                          <td>
-                            {formatDateTime(
-                              visitor.check_out
-                            )}
-                          </td>
-
-                          <td>
-                            <span
-                              className={getStatusClass(
-                                visitor.status
-                              )}
-                            >
-                              {
-                                visitor.status
-                              }
+                            <span>
+                              STUDENT
                             </span>
-                          </td>
 
-                          <td className="visitor-management-remarks">
-                            {visitor.remarks ||
-                              "-"}
-                          </td>
+                            <strong>
+                              {
+                                visitor.student_name ||
+                                `Student #${visitor.student_id}`
+                              }
+                            </strong>
 
-                          {!isStudent && (
-                            <td>
-                              <div className="visitor-management-actions">
-                                <button
-                                  type="button"
-                                  className="visitor-action-button edit"
-                                  onClick={() =>
-                                    openEditForm(
-                                      visitor
-                                    )
+                            <small>
+                              {
+                                visitor.student_code ||
+                                ""
+                              }
+                            </small>
+
+                          </div>
+
+                        )}
+
+
+                        <div>
+
+                          <span>
+                            VISIT DATE
+                          </span>
+
+                          <strong>
+                            {
+                              formatDate(
+                                visitor.visit_date
+                              )
+                            }
+                          </strong>
+
+                        </div>
+
+
+                        <div>
+
+                          <span>
+                            PURPOSE
+                          </span>
+
+                          <strong>
+                            {visitor.purpose}
+                          </strong>
+
+                        </div>
+
+
+                        <div>
+
+                          <span>
+                            CHECK IN
+                          </span>
+
+                          <strong>
+                            {
+                              formatDateTime(
+                                visitor.check_in
+                              )
+                            }
+                          </strong>
+
+                        </div>
+
+
+                        <div>
+
+                          <span>
+                            CHECK OUT
+                          </span>
+
+                          <strong>
+                            {
+                              formatDateTime(
+                                visitor.check_out
+                              )
+                            }
+                          </strong>
+
+                        </div>
+
+                      </div>
+
+
+                      {visitor.remarks && (
+
+                        <div className="visitor-remarks">
+
+                          <span>
+                            REMARKS
+                          </span>
+
+                          <p>
+                            {visitor.remarks}
+                          </p>
+
+                        </div>
+
+                      )}
+
+
+                      {isStudent &&
+                        visitor.pass_available &&
+                        visitor.qr_code && (
+
+                        <div className="visitor-pass-section">
+
+                          <button
+                            type="button"
+                            className="visitor-show-pass"
+                            onClick={() =>
+                              setExpandedPassId(
+                                passExpanded
+                                  ? null
+                                  : visitor.id
+                              )
+                            }
+                          >
+
+                            <span>▣</span>
+
+                            {passExpanded
+                              ? "Hide QR Pass"
+                              : "Show QR Pass"}
+
+                          </button>
+
+
+                          {passExpanded && (
+
+                            <div className="visitor-qr-pass">
+
+                              <div className="visitor-pass-top">
+
+                                <div>
+
+                                  <span>
+                                    HOSTELHUB
+                                  </span>
+
+                                  <strong>
+                                    Visitor Pass
+                                  </strong>
+
+                                </div>
+
+
+                                <span
+                                  className={
+                                    `visitor-pass-status ${
+                                      visitor.status ===
+                                      "Checked In"
+                                        ? "inside"
+                                        : ""
+                                    }`
                                   }
                                 >
-                                  Edit
-                                </button>
 
-                                <button
-                                  type="button"
-                                  className="visitor-action-button delete"
-                                  onClick={() =>
-                                    handleDelete(
-                                      visitor
-                                    )
-                                  }
-                                >
-                                  Delete
-                                </button>
+                                  {visitor.status ===
+                                  "Checked In"
+                                    ? "Inside Hostel"
+                                    : "Valid Pass"}
+
+                                </span>
+
                               </div>
-                            </td>
+
+
+                              <div className="visitor-pass-body">
+
+                                <div className="visitor-pass-qr">
+
+                                  <QRCodeSVG
+                                    value={
+                                      visitor.qr_code
+                                    }
+                                    size={180}
+                                    level="H"
+                                    marginSize={2}
+                                  />
+
+                                </div>
+
+
+                                <div className="visitor-pass-info">
+
+                                  <span>VISITOR</span>
+
+                                  <strong>
+                                    {visitor.visitor_name}
+                                  </strong>
+
+
+                                  <span>RELATION</span>
+
+                                  <strong>
+                                    {visitor.relation}
+                                  </strong>
+
+
+                                  <span>
+                                    VISIT DATE
+                                  </span>
+
+                                  <strong>
+                                    {
+                                      formatDate(
+                                        visitor.visit_date
+                                      )
+                                    }
+                                  </strong>
+
+
+                                  <span>PURPOSE</span>
+
+                                  <strong>
+                                    {visitor.purpose}
+                                  </strong>
+
+                                </div>
+
+                              </div>
+
+
+                              <div className="visitor-pass-footer">
+
+                                <span>▣</span>
+
+                                <p>
+                                  Show this QR at the hostel gate.
+                                </p>
+
+                              </div>
+
+                            </div>
+
                           )}
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
+
+                        </div>
+
+                      )}
+
+
+                      <div className="visitor-record-actions">
+
+                        {isStudent &&
+                          (
+                            visitor.status ===
+                              "Pending" ||
+                            visitor.status ===
+                              "Approved"
+                          ) &&
+                          !visitor.check_in && (
+
+                          <button
+                            type="button"
+                            className="visitor-cancel-button"
+                            onClick={() =>
+                              cancelMyRequest(
+                                visitor
+                              )
+                            }
+                          >
+                            Cancel Request
+                          </button>
+
+                        )}
+
+
+                        {isManagement &&
+                          (
+                            visitor.status ===
+                              "Pending" ||
+                            visitor.status ===
+                              "Expected"
+                          ) && (
+
+                          <button
+                            type="button"
+                            className="visitor-review-button"
+                            onClick={() =>
+                              openReview(
+                                visitor
+                              )
+                            }
+                          >
+                            Review Request
+                          </button>
+
+                        )}
+
+
+                        {isManagement && (
+
+                          <button
+                            type="button"
+                            className="visitor-edit-button"
+                            onClick={() =>
+                              openEditForm(
+                                visitor
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
+
+                        )}
+
+
+                        {isManagement &&
+                          visitor.status !==
+                            "Checked In" && (
+
+                          <button
+                            type="button"
+                            className="visitor-delete-button"
+                            onClick={() =>
+                              deleteVisitor(
+                                visitor
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+
+                        )}
+
+                      </div>
+
+                    </article>
+
+                  );
+                  }
+                )}
+
               </div>
+
+
+              <Pagination
+                currentPage={
+                  currentPage
+                }
+                totalPages={
+                  totalPages
+                }
+                totalItems={
+                  filteredVisitors.length
+                }
+                pageSize={
+                  pageSize
+                }
+                onPageChange={
+                  setCurrentPage
+                }
+                onPageSizeChange={
+                  setPageSize
+                }
+              />
+
+            </>
+
+          )}
+
+        </section>
+
+
+        {/* REVIEW */}
+
+        {isManagement &&
+          reviewVisitorRecord && (
+
+          <section className="overview-card visitor-review-card">
+
+            <div className="visitor-review-header">
+
+              <div>
+
+                <span className="visitor-eyebrow">
+                  REVIEW VISITOR
+                </span>
+
+                <h2>
+                  {
+                    reviewVisitorRecord.visitor_name
+                  }
+                </h2>
+
+                <p>
+                  Requested by{" "}
+                  {
+                    reviewVisitorRecord.student_name ||
+                    `Student #${reviewVisitorRecord.student_id}`
+                  }
+                </p>
+
+              </div>
+
+
+              <button
+                type="button"
+                onClick={() =>
+                  setReviewVisitorRecord(
+                    null
+                  )
+                }
+              >
+                ×
+              </button>
+
             </div>
+
+
+            <div className="visitor-review-details">
+
+              <div>
+                <span>RELATION</span>
+
+                <strong>
+                  {
+                    reviewVisitorRecord.relation
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <span>PHONE</span>
+
+                <strong>
+                  {
+                    reviewVisitorRecord.phone
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <span>DATE</span>
+
+                <strong>
+                  {
+                    formatDate(
+                      reviewVisitorRecord.visit_date
+                    )
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <span>PURPOSE</span>
+
+                <strong>
+                  {
+                    reviewVisitorRecord.purpose
+                  }
+                </strong>
+              </div>
+
+            </div>
+
+
+            <label className="visitor-review-note">
+
+              Review Note
+
+              <textarea
+                rows="4"
+                maxLength="500"
+                value={
+                  reviewRemarks
+                }
+                onChange={
+                  (
+                    event
+                  ) =>
+                    setReviewRemarks(
+                      event.target.value
+                    )
+                }
+              />
+
+            </label>
+
+
+            <div className="visitor-review-actions">
+
+              <button
+                type="button"
+                className="visitor-reject-button"
+                disabled={
+                  reviewing
+                }
+                onClick={() =>
+                  reviewVisitor(
+                    "Rejected"
+                  )
+                }
+              >
+                Reject
+              </button>
+
+
+              <button
+                type="button"
+                className="primary-button"
+                disabled={
+                  reviewing
+                }
+                onClick={() =>
+                  reviewVisitor(
+                    "Approved"
+                  )
+                }
+              >
+
+                {reviewing
+                  ? "Processing..."
+                  : "Approve & Generate QR"}
+
+              </button>
+
+            </div>
+
           </section>
+
         )}
+
       </main>
+
     </div>
   );
 }
+
 
 export default Visitors;

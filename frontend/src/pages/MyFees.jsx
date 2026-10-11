@@ -1,82 +1,270 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
 import Sidebar from "../components/Sidebar";
+
 import "../components/Sidebar.css";
+import "./MyFees.css";
 
 import api from "../services/api";
 
 
+function formatMoney(
+  value
+) {
+  const amount =
+    Number(value) || 0;
+
+  return new Intl.NumberFormat(
+    "en-IN",
+    {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }
+  ).format(amount);
+}
+
+
+function formatDate(
+  value
+) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(
+      value
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
+}
+
+
+function formatDateTime(
+  value
+) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(
+      value
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return value;
+  }
+
+  return date.toLocaleString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+}
+
+
+function getErrorMessage(
+  error,
+  fallback
+) {
+  const detail =
+    error?.response
+      ?.data
+      ?.detail;
+
+  if (
+    typeof detail ===
+    "string"
+  ) {
+    return detail;
+  }
+
+  return fallback;
+}
+
+
 function MyFees() {
-  const [fees, setFees] =
-    useState([]);
+  const [
+    fees,
+    setFees,
+  ] = useState([]);
 
-  const [transactions, setTransactions] =
-    useState([]);
+  const [
+    transactions,
+    setTransactions,
+  ] = useState([]);
 
-  const [settings, setSettings] =
-    useState(null);
+  const [
+    paymentSettings,
+    setPaymentSettings,
+  ] = useState(null);
 
-  const [payment, setPayment] =
-    useState(null);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    success,
+    setSuccess,
+  ] = useState("");
 
-  const [success, setSuccess] =
-    useState("");
+  const [
+    activePayment,
+    setActivePayment,
+  ] = useState(null);
+
+  const [
+    paymentProcessing,
+    setPaymentProcessing,
+  ] = useState(false);
+
+  const [
+    downloadingReceipt,
+    setDownloadingReceipt,
+  ] = useState(null);
 
 
-  const load =
+  // ==========================================
+  // LOAD
+  // ==========================================
+
+  const loadData =
     useCallback(
       async () => {
         try {
           setLoading(true);
+
           setError("");
 
           const [
-            feesResponse,
-            transactionsResponse,
-            settingsResponse,
-          ] = await Promise.all([
-            api.get(
-              "/fees/my-fees"
-            ),
+            feesResult,
+            transactionResult,
+            settingsResult,
+          ] =
+            await Promise.allSettled([
+              api.get(
+                "/fees/my-fees"
+              ),
 
-            api.get(
-              "/fees/my-payment-transactions"
-            ),
+              api.get(
+                "/fees/my-payment-transactions"
+              ),
 
-            api.get(
-              "/fees/payment-settings"
-            ),
-          ]);
+              api.get(
+                "/fees/payment-settings"
+              ),
+            ]);
 
-          setFees(
-            feesResponse.data
-          );
 
-          setTransactions(
-            transactionsResponse.data
-          );
+          if (
+            feesResult.status ===
+            "fulfilled"
+          ) {
+            setFees(
+              Array.isArray(
+                feesResult
+                  .value
+                  .data
+              )
+                ? feesResult
+                    .value
+                    .data
+                : []
+            );
 
-          setSettings(
-            settingsResponse.data
-          );
+          } else {
+            throw (
+              feesResult.reason
+            );
+          }
 
-        } catch (error) {
+
+          if (
+            transactionResult.status ===
+            "fulfilled"
+          ) {
+            setTransactions(
+              Array.isArray(
+                transactionResult
+                  .value
+                  .data
+              )
+                ? transactionResult
+                    .value
+                    .data
+                : []
+            );
+
+          } else {
+            setTransactions(
+              []
+            );
+          }
+
+
+          if (
+            settingsResult.status ===
+            "fulfilled"
+          ) {
+            setPaymentSettings(
+              settingsResult
+                .value
+                .data
+            );
+
+          } else {
+            setPaymentSettings(
+              null
+            );
+          }
+
+        } catch (
+          requestError
+        ) {
+          setFees([]);
+
           setError(
-            error.response
-              ?.data
-              ?.detail
-            ||
-            "Unable to load fee details."
+            getErrorMessage(
+              requestError,
+              "Unable to load fee information."
+            )
           );
 
         } finally {
@@ -88,135 +276,372 @@ function MyFees() {
 
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadData();
+  }, [
+    loadData,
+  ]);
 
+
+  // ==========================================
+  // FEE ROOM DISPLAY
+  // ==========================================
+
+  const feeRoomName = (fee) => {
+    if (!fee?.room_id) {
+      return "—";
+    }
+
+    const description =
+      String(fee.description || "");
+
+    const match =
+      description.match(
+        /Yearly hostel room fee\s*-\s*(.*?)\s*\(/i
+      );
+
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+
+    return `Room #${fee.room_id}`;
+  };
+
+
+  // ==========================================
+  // SUMMARY
+  // ==========================================
+
+  const summary =
+    useMemo(
+      () => {
+        let total =
+          0;
+
+        let paid =
+          0;
+
+        let pending =
+          0;
+
+
+        fees.forEach(
+          (
+            fee
+          ) => {
+            const amount =
+              Number(
+                fee.amount
+              ) || 0;
+
+            total +=
+              amount;
+
+
+            if (
+              String(
+                fee.status
+              ).toLowerCase() ===
+              "paid"
+            ) {
+              paid +=
+                amount;
+
+            } else {
+              pending +=
+                amount;
+            }
+          }
+        );
+
+
+        return {
+          total,
+          paid,
+          pending,
+        };
+      },
+      [fees]
+    );
+
+
+  // ==========================================
+  // START DEMO PAYMENT
+  // ==========================================
 
   const startPayment =
-    async (fee) => {
+    async (
+      fee
+    ) => {
       try {
+        setPaymentProcessing(
+          true
+        );
+
         setError("");
         setSuccess("");
+
 
         const response =
           await api.post(
             `/fees/payments/${fee.id}/start`
           );
 
-        setPayment(
-          response.data
+
+        setActivePayment({
+          ...response.data,
+
+          fee,
+        });
+
+      } catch (
+        requestError
+      ) {
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to start payment."
+          )
         );
 
-      } catch (error) {
-        setError(
-          error.response
-            ?.data
-            ?.detail
-          ||
-          "Unable to start payment."
+      } finally {
+        setPaymentProcessing(
+          false
         );
       }
     };
 
 
-  const completePayment =
+  // ==========================================
+  // COMPLETE DEMO
+  // ==========================================
+
+  const completeDemoPayment =
     async () => {
+      if (
+        !activePayment
+      ) {
+        return;
+      }
+
+
       try {
+        setPaymentProcessing(
+          true
+        );
+
+        setError("");
+        setSuccess("");
+
+
         const response =
           await api.post(
-            `/fees/payments/${payment.transaction_id}/complete-demo`
+            `/fees/payments/${activePayment.transaction_id}/complete-demo`
           );
 
+
         setSuccess(
-          `Payment successful. Receipt: ${response.data.receipt_number}`
+          response.data
+            ?.receipt_number
+            ? (
+                "Payment completed successfully. "
+                + `Receipt: ${response.data.receipt_number}`
+              )
+            : "Payment completed successfully."
         );
 
-        setPayment(null);
 
-        await load();
+        setActivePayment(
+          null
+        );
 
-      } catch (error) {
+
+        await loadData();
+
+      } catch (
+        requestError
+      ) {
         setError(
-          error.response
-            ?.data
-            ?.detail
-          ||
-          "Payment could not be completed."
+          getErrorMessage(
+            requestError,
+            "Unable to complete payment."
+          )
+        );
+
+      } finally {
+        setPaymentProcessing(
+          false
         );
       }
     };
 
 
-  const failPayment =
+  // ==========================================
+  // FAIL DEMO
+  // ==========================================
+
+  const failDemoPayment =
     async () => {
+      if (
+        !activePayment
+      ) {
+        return;
+      }
+
+
       try {
+        setPaymentProcessing(
+          true
+        );
+
+        setError("");
+        setSuccess("");
+
+
         await api.post(
-          `/fees/payments/${payment.transaction_id}/fail-demo`,
+          `/fees/payments/${activePayment.transaction_id}/fail-demo`,
           {
             reason:
               "Demo payment failure",
           }
         );
 
-        setPayment(null);
 
         setError(
-          "Demo payment failed and was recorded."
+          "Demo payment marked as failed."
         );
 
-        await load();
 
-      } catch (error) {
+        setActivePayment(
+          null
+        );
+
+
+        await loadData();
+
+      } catch (
+        requestError
+      ) {
         setError(
-          error.response
-            ?.data
-            ?.detail
-          ||
-          "Unable to record payment failure."
+          getErrorMessage(
+            requestError,
+            "Unable to update demo payment."
+          )
+        );
+
+      } finally {
+        setPaymentProcessing(
+          false
         );
       }
     };
 
 
-  const total =
-    fees.reduce(
-      (sum, fee) =>
-        sum
-        + Number(
-          fee.amount || 0
-        ),
-      0
-    );
+  // ==========================================
+  // FEATURE 7 — DOWNLOAD PDF RECEIPT
+  // ==========================================
+
+  const downloadReceipt =
+    async (
+      transaction
+    ) => {
+      try {
+        setDownloadingReceipt(
+          transaction.id
+        );
+
+        setError("");
 
 
-  const paid =
-    fees
-      .filter(
-        (fee) =>
-          String(
-            fee.status
-          ).toLowerCase()
-          === "paid"
-      )
-      .reduce(
-        (sum, fee) =>
-          sum
-          + Number(
-            fee.amount || 0
-          ),
-        0
-      );
+        const response =
+          await api.get(
+            `/fee-receipts/${transaction.id}/pdf`,
+            {
+              responseType:
+                "blob",
+            }
+          );
+
+
+        const blob =
+          new Blob(
+            [
+              response.data,
+            ],
+            {
+              type:
+                "application/pdf",
+            }
+          );
+
+
+        const url =
+          window.URL
+            .createObjectURL(
+              blob
+            );
+
+
+        const link =
+          document
+            .createElement(
+              "a"
+            );
+
+
+        link.href =
+          url;
+
+
+        link.download =
+          `${transaction.receipt_number || `receipt-${transaction.id}`}.pdf`;
+
+
+        document.body
+          .appendChild(
+            link
+          );
+
+
+        link.click();
+
+
+        link.remove();
+
+
+        window.URL
+          .revokeObjectURL(
+            url
+          );
+
+      } catch {
+        setError(
+          "Unable to download the receipt PDF."
+        );
+
+      } finally {
+        setDownloadingReceipt(
+          null
+        );
+      }
+    };
 
 
   return (
     <div className="dashboard-layout">
+
       <Sidebar />
 
+
       <main className="dashboard-main">
+
+        {/* HEADER */}
+
         <header className="dashboard-header">
+
           <div>
+
             <span className="dashboard-label">
-              STUDENT FINANCE
+              FINANCE
             </span>
 
             <h1>
@@ -224,345 +649,746 @@ function MyFees() {
             </h1>
 
             <p>
-              View and pay your hostel fees.
+              View hostel fees,
+              make payments and
+              download receipts.
             </p>
+
           </div>
+
+
+          <div className="dashboard-date">
+
+            <span>
+              PENDING
+            </span>
+
+            <strong>
+              {
+                formatMoney(
+                  summary.pending
+                )
+              }
+            </strong>
+
+          </div>
+
         </header>
 
 
         {error && (
           <div className="fees-error">
-            <p>
-              {error}
-            </p>
+            {error}
           </div>
         )}
 
 
         {success && (
-          <div
-            style={{
-              marginBottom:
-                "18px",
-
-              padding:
-                "14px",
-
-              borderRadius:
-                "10px",
-
-              background:
-                "#ecfdf3",
-
-              color:
-                "#067647",
-            }}
-          >
+          <div className="fees-message">
             {success}
           </div>
         )}
 
 
-        {loading ? (
+        {/* SUMMARY */}
+
+        <section className="fees-summary-grid">
+
+          <div className="fees-summary-card">
+
+            <span>
+              Total Fees
+            </span>
+
+            <strong>
+              {
+                formatMoney(
+                  summary.total
+                )
+              }
+            </strong>
+
+          </div>
+
+
+          <div className="fees-summary-card">
+
+            <span>
+              Paid
+            </span>
+
+            <strong>
+              {
+                formatMoney(
+                  summary.paid
+                )
+              }
+            </strong>
+
+          </div>
+
+
+          <div className="fees-summary-card">
+
+            <span>
+              Pending
+            </span>
+
+            <strong>
+              {
+                formatMoney(
+                  summary.pending
+                )
+              }
+            </strong>
+
+          </div>
+
+        </section>
+
+
+        {/* PAYMENT SETTINGS */}
+
+        {paymentSettings && (
+
           <section className="overview-card">
-            Loading fees...
-          </section>
 
-        ) : (
-          <>
-            <section className="fees-summary-grid">
-              <div className="fees-summary-card">
-                <div>
-                  <span>
-                    Total Fees
-                  </span>
+            <div className="overview-header">
 
-                  <strong>
-                    ₹{total.toLocaleString(
-                      "en-IN"
-                    )}
-                  </strong>
-                </div>
-              </div>
+              <div>
 
-              <div className="fees-summary-card">
-                <div>
-                  <span>
-                    Paid
-                  </span>
-
-                  <strong>
-                    ₹{paid.toLocaleString(
-                      "en-IN"
-                    )}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="fees-summary-card">
-                <div>
-                  <span>
-                    Pending
-                  </span>
-
-                  <strong>
-                    ₹{(
-                      total - paid
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-                  </strong>
-                </div>
-              </div>
-            </section>
-
-
-            {settings && (
-              <section
-                className="overview-card"
-                style={{
-                  marginBottom:
-                    "22px",
-                }}
-              >
                 <h2>
                   Online Payment
                 </h2>
 
                 <p>
-                  Current project payment
-                  mode: <strong>Demo/Test</strong>
+                  Hostel payment
+                  information.
                 </p>
 
-                <p>
-                  UPI:{" "}
-                  {settings.upi_id
-                    || "Not configured"}
-                </p>
+              </div>
 
-                <p>
-                  Bank:{" "}
-                  {settings.bank_name
-                    || "Not configured"}
-                </p>
-
-                <p>
-                  Account:{" "}
-                  {settings.account_last4
-                    ? `•••• ${settings.account_last4}`
-                    : "Not configured"}
-                </p>
-              </section>
-            )}
+            </div>
 
 
-            {payment && (
-              <section
-                className="overview-card"
-                style={{
-                  marginBottom:
-                    "22px",
-                }}
-              >
-                <h2>
-                  Demo Payment
-                </h2>
+            <div
+              style={{
+                display:
+                  "grid",
 
-                <p>
-                  Amount: ₹
-                  {Number(
-                    payment.amount
-                  ).toLocaleString(
-                    "en-IN"
-                  )}
-                </p>
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
 
-                <div
+                gap:
+                  "12px",
+
+                marginTop:
+                  "18px",
+              }}
+            >
+
+              <div>
+                <small>
+                  Payment Status
+                </small>
+
+                <strong
                   style={{
                     display:
-                      "flex",
+                      "block",
 
-                    gap:
-                      "12px",
-
-                    flexWrap:
-                      "wrap",
+                    marginTop:
+                      "4px",
                   }}
                 >
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={
-                      completePayment
-                    }
-                  >
-                    Complete Payment
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={
-                      failPayment
-                    }
-                  >
-                    Simulate Failure
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() =>
-                      setPayment(null)
-                    }
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </section>
-            )}
+                  {
+                    paymentSettings
+                      .payment_enabled
+                      ? "Enabled"
+                      : "Disabled"
+                  }
+                </strong>
+              </div>
 
 
-            <section className="overview-card">
+              <div>
+                <small>
+                  UPI ID
+                </small>
+
+                <strong
+                  style={{
+                    display:
+                      "block",
+
+                    marginTop:
+                      "4px",
+                  }}
+                >
+                  {
+                    paymentSettings
+                      .upi_id ||
+                    "—"
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <small>
+                  Bank
+                </small>
+
+                <strong
+                  style={{
+                    display:
+                      "block",
+
+                    marginTop:
+                      "4px",
+                  }}
+                >
+                  {
+                    paymentSettings
+                      .bank_name ||
+                    "—"
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <small>
+                  Support
+                </small>
+
+                <strong
+                  style={{
+                    display:
+                      "block",
+
+                    marginTop:
+                      "4px",
+                  }}
+                >
+                  {
+                    paymentSettings
+                      .support_email ||
+                    "—"
+                  }
+                </strong>
+              </div>
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* FEES */}
+
+        <section className="overview-card fees-table-card">
+
+          <div className="overview-header">
+
+            <div>
+
               <h2>
                 Fee Records
               </h2>
 
-              <div className="fees-table-wrapper">
-                <table className="fees-table">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th>Amount</th>
-                      <th>Due Date</th>
-                      <th>Status</th>
-                      <th>Payment</th>
-                    </tr>
-                  </thead>
+              <p>
+                Your hostel fee
+                history.
+              </p>
 
-                  <tbody>
-                    {fees.map(
-                      (fee) => (
-                        <tr key={fee.id}>
-                          <td>
-                            {fee.description
-                              || `Fee #${fee.id}`}
-                          </td>
+            </div>
 
-                          <td>
-                            ₹{Number(
-                              fee.amount
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </td>
+          </div>
 
-                          <td>
-                            {fee.due_date}
-                          </td>
 
-                          <td>
-                            {fee.status}
-                          </td>
+          {loading ? (
 
-                          <td>
-                            {String(
-                              fee.status
-                            ).toLowerCase()
-                            === "paid" ? (
-                              <strong>
-                                ✓ Paid
-                              </strong>
+            <div className="empty-state">
+              Loading fees...
+            </div>
 
-                            ) : (
-                              <button
-                                type="button"
-                                className="primary-button"
-                                disabled={
-                                  !settings
-                                  ?.payment_enabled
-                                }
-                                onClick={() =>
-                                  startPayment(
-                                    fee
-                                  )
-                                }
-                              >
-                                Pay Online
-                              </button>
-                            )}
-                          </td>
-                        </tr>
+          ) : fees.length ===
+            0 ? (
+
+            <div className="empty-state">
+              No fee records found.
+            </div>
+
+          ) : (
+
+            <div className="fees-table-wrapper">
+
+              <table className="fees-table my-fees-records-table">
+
+                <thead>
+
+                  <tr>
+
+                    <th>
+                      Fee Type
+                    </th>
+
+                    <th>
+                      Room
+                    </th>
+
+                    <th>
+                      Academic Year
+                    </th>
+
+                    <th>
+                      Amount
+                    </th>
+
+                    <th>
+                      Due Date
+                    </th>
+
+                    <th>
+                      Paid On
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th>
+                      Source
+                    </th>
+
+                    <th>
+                      Action
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                  {fees.map(
+                    (
+                      fee
+                    ) => {
+
+                    const paid =
+                      String(
+                        fee.status
                       )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                        .toLowerCase()
+                      ===
+                      "paid";
 
 
-            <section
-              className="overview-card"
-              style={{
-                marginTop:
-                  "22px",
-              }}
-            >
+                    return (
+
+                      <tr
+                        key={
+                          fee.id
+                        }
+                      >
+
+                        <td>
+
+                          <div className="my-fee-type-cell">
+
+                            <strong>
+                              {
+                                fee.fee_type ||
+                                "Manual Fee"
+                              }
+                            </strong>
+
+                            <span>
+                              Fee #{fee.id}
+                            </span>
+
+                          </div>
+
+                        </td>
+
+
+                        <td>
+
+                          <span className="my-fee-room-badge">
+                            {
+                              feeRoomName(
+                                fee
+                              )
+                            }
+                          </span>
+
+                        </td>
+
+
+                        <td>
+                          {
+                            fee.academic_year ||
+                            "—"
+                          }
+                        </td>
+
+
+                        <td className="fee-amount">
+                          {
+                            formatMoney(
+                              fee.amount
+                            )
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            formatDate(
+                              fee.due_date
+                            )
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            formatDate(
+                              fee.payment_date
+                            )
+                          }
+                        </td>
+
+
+                        <td>
+
+                          <span
+                            className={
+                              `fee-status ${String(
+                                fee.status
+                              ).toLowerCase()}`
+                            }
+                          >
+                            {
+                              fee.status
+                            }
+                          </span>
+
+                        </td>
+
+
+                        <td>
+
+                          <span
+                            className={
+                              fee.auto_generated
+                                ? "my-fee-source auto"
+                                : "my-fee-source manual"
+                            }
+                          >
+                            {
+                              fee.auto_generated
+                                ? "AUTO GENERATED"
+                                : "MANUAL"
+                            }
+                          </span>
+
+                        </td>
+
+
+                        <td>
+
+                          {!paid ? (
+
+                            <button
+                              type="button"
+                              className="primary-button"
+                              disabled={
+                                paymentProcessing ||
+                                (
+                                  paymentSettings &&
+                                  !paymentSettings
+                                    .payment_enabled
+                                )
+                              }
+                              onClick={() =>
+                                startPayment(
+                                  fee
+                                )
+                              }
+                            >
+                              Pay
+                            </button>
+
+                          ) : (
+
+                            <span className="my-fee-paid-label">
+                              Paid
+                            </span>
+
+                          )}
+
+                        </td>
+
+                      </tr>
+
+                    );
+
+                    }
+                  )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </section>
+
+
+        {/* FEATURE 7 — PAYMENT HISTORY */}
+
+        <section
+          className="overview-card fees-table-card"
+          style={{
+            marginTop:
+              "22px",
+          }}
+        >
+
+          <div className="overview-header">
+
+            <div>
+
               <h2>
-                Transactions
+                Payment History & Receipts
               </h2>
 
-              <div className="fees-table-wrapper">
-                <table className="fees-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Reference</th>
-                      <th>Receipt</th>
-                    </tr>
-                  </thead>
+              <p>
+                Successful payments
+                include downloadable
+                PDF receipts.
+              </p>
 
-                  <tbody>
-                    {transactions.map(
-                      (record) => (
-                        <tr key={record.id}>
-                          <td>
-                            #{record.id}
-                          </td>
+            </div>
 
-                          <td>
-                            ₹{Number(
-                              record.amount
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </td>
+          </div>
 
-                          <td>
-                            {record.status}
-                          </td>
 
-                          <td>
-                            {record.payment_reference
-                              || "-"}
-                          </td>
+          {transactions.length ===
+            0 ? (
 
-                          <td>
-                            {record.receipt_number
-                              || "-"}
-                          </td>
-                        </tr>
+            <div className="empty-state">
+              No payment transactions yet.
+            </div>
+
+          ) : (
+
+            <div className="fees-table-wrapper">
+
+              <table className="fees-table">
+
+                <thead>
+
+                  <tr>
+                    <th>
+                      Transaction
+                    </th>
+
+                    <th>
+                      Fee
+                    </th>
+
+                    <th>
+                      Amount
+                    </th>
+
+                    <th>
+                      Method
+                    </th>
+
+                    <th>
+                      Reference
+                    </th>
+
+                    <th>
+                      Receipt
+                    </th>
+
+                    <th>
+                      Date
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th>
+                      PDF
+                    </th>
+                  </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                  {transactions.map(
+                    (
+                      transaction
+                    ) => {
+
+                    const paid =
+                      String(
+                        transaction
+                          .status
                       )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
+                        .toLowerCase()
+                      ===
+                      "paid";
+
+
+                    return (
+
+                      <tr
+                        key={
+                          transaction
+                            .id
+                        }
+                      >
+
+                        <td>
+                          #
+                          {
+                            transaction
+                              .id
+                          }
+                        </td>
+
+
+                        <td>
+                          #
+                          {
+                            transaction
+                              .fee_id
+                          }
+                        </td>
+
+
+                        <td className="fee-amount">
+                          {
+                            formatMoney(
+                              transaction
+                                .amount
+                            )
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            transaction
+                              .payment_method ||
+                            "—"
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            transaction
+                              .payment_reference ||
+                            "—"
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            transaction
+                              .receipt_number ||
+                            "—"
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            formatDateTime(
+                              transaction
+                                .completed_at ||
+                              transaction
+                                .created_at
+                            )
+                          }
+                        </td>
+
+
+                        <td>
+                          {
+                            transaction
+                              .status
+                          }
+                        </td>
+
+
+                        <td>
+
+                          {paid &&
+                          transaction
+                            .receipt_number ? (
+
+                            <button
+                              type="button"
+                              className="primary-button"
+                              disabled={
+                                downloadingReceipt ===
+                                transaction.id
+                              }
+                              onClick={() =>
+                                downloadReceipt(
+                                  transaction
+                                )
+                              }
+                            >
+
+                              {downloadingReceipt ===
+                              transaction.id
+                                ? "Preparing..."
+                                : "↓ PDF Receipt"}
+
+                            </button>
+
+                          ) : (
+                            "—"
+                          )}
+
+                        </td>
+
+                      </tr>
+
+                    );
+                    }
+                  )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </section>
+
       </main>
+
     </div>
   );
 }

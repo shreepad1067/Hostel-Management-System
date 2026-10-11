@@ -21,7 +21,16 @@ from models.fee import (
 )
 
 from models.student import Student
+from models.hostel_profile import HostelProfile
 from models.user import User
+
+from services.fee_receipt_service import (
+    generate_fee_receipt_pdf,
+)
+
+from services.notification_service import (
+    send_email_with_attachment,
+)
 
 from schemas.fee import (
     FeeCreate,
@@ -456,8 +465,118 @@ def complete_demo_payment(
     fee.payment_date = now.date()
     fee.payment_method = "Online Demo"
 
+    # Payment must be saved successfully before
+    # attempting external email delivery.
     db.commit()
     db.refresh(transaction)
+
+    # ==================================================
+    # AUTOMATIC PDF RECEIPT EMAIL
+    #
+    # Email failure must NEVER reverse a successful
+    # hostel fee payment.
+    # ==================================================
+
+    student_email = (
+        str(student.email).strip()
+        if getattr(student, "email", None)
+        else ""
+    )
+
+    if student_email:
+
+        try:
+            hostel = (
+                db.query(HostelProfile)
+                .filter(
+                    HostelProfile.id == 1
+                )
+                .first()
+            )
+
+            pdf_bytes = (
+                generate_fee_receipt_pdf(
+                    hostel=hostel,
+                    student=student,
+                    fee=fee,
+                    transaction=transaction,
+                )
+            )
+
+            receipt_filename = (
+                f"{transaction.receipt_number}.pdf"
+            )
+
+            fee_description = (
+                fee.description
+                or "Hostel Fee"
+            )
+
+            send_email_with_attachment(
+                recipient_email=student_email,
+
+                subject=(
+                    "HostelHub Fee Payment Receipt - "
+                    f"{transaction.receipt_number}"
+                ),
+
+                body=f"""Hello {student.name},
+
+Your HostelHub fee payment has been completed successfully.
+
+Fee:
+{fee_description}
+
+Amount Paid:
+₹{float(transaction.amount):,.2f}
+
+Payment Reference:
+{transaction.payment_reference or "Not available"}
+
+Receipt Number:
+{transaction.receipt_number}
+
+Payment Date:
+{now.date().strftime("%d %b %Y")}
+
+Your official PDF receipt is attached to this email.
+
+You can also download the receipt anytime from:
+
+HostelHub → My Fees → Payment History & Receipts
+
+Regards,
+HostelHub
+Hostel Management System
+""",
+
+                attachment_bytes=pdf_bytes,
+                attachment_filename=receipt_filename,
+                attachment_content_type="application/pdf",
+            )
+
+            print(
+                "[HostelHub] Fee receipt emailed to "
+                f"{student_email}"
+            )
+
+        except Exception as exc:
+
+            # IMPORTANT:
+            # Payment has already been committed.
+            # Email failure must not change Paid status.
+            print(
+                "[HostelHub] Receipt email failed for "
+                f"transaction {transaction.id}: {exc}"
+            )
+
+    else:
+
+        print(
+            "[HostelHub] Receipt email skipped for "
+            f"transaction {transaction.id}: "
+            "student email is missing."
+        )
 
     return transaction
 

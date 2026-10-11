@@ -5,6 +5,10 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import Topbar from "./Topbar";
+
+import "./Sidebar.css";
+
 
 function getRole() {
   try {
@@ -17,13 +21,25 @@ function getRole() {
       return "Guest";
     }
 
+    let payload =
+      token.split(".")[1];
+
+    payload =
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      payload.length % 4
+    ) {
+      payload += "=";
+    }
+
     return (
       JSON.parse(
-        atob(
-          token.split(".")[1]
-        )
-      ).role
-      || "Student"
+        atob(payload)
+      ).role ||
+      "Student"
     );
 
   } catch {
@@ -40,556 +56,376 @@ function Sidebar() {
     getRole();
 
 
+  // ==============================================
+  // STUDENT MENU
+  // ==============================================
+
   const studentMenu = [
     {
-      name:
-        "Dashboard",
-
-      path:
-        "/dashboard",
-
-      icon:
-        "▦",
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: "▦",
     },
 
     {
-      name:
-        "My Room",
-
-      path:
-        "/my-room",
-
-      icon:
-        "⌂",
+      name: "My Profile",
+      path: "/profile",
+      icon: "👤",
     },
 
     {
-      name:
-        "My Fees",
-
-      path:
-        "/my-fees",
-
-      icon:
-        "₹",
+      name: "My Room",
+      path: "/my-room",
+      icon: "⌂",
     },
 
     {
-      name:
-        "Meal Tracking",
-
-      path:
-        "/meal-tracking",
-
-      icon:
-        "🍽",
+      name: "Room Transfer",
+      path: "/room-transfer",
+      icon: "⇄",
     },
 
     {
-      name:
-        "Food Menu",
-
-      path:
-        "/food-menu",
-
-      icon:
-        "☷",
+      name: "Maintenance",
+      path: "/maintenance",
+      icon: "⚙",
     },
 
     {
-      name:
-        "Food Feedback",
-
-      path:
-        "/food-feedback",
-
-      icon:
-        "★",
+      name: "My Fees",
+      path: "/my-fees",
+      icon: "₹",
     },
 
     {
-      name:
-        "Attendance",
-
-      path:
-        "/attendance",
-
-      icon:
-        "✓",
+      name: "Meal Tracking",
+      path: "/meal-tracking",
+      icon: "🍽",
     },
 
     {
-      name:
-        "Complaints",
-
-      path:
-        "/complaints",
-
-      icon:
-        "⚠",
+      name: "Food Menu",
+      path: "/food-menu",
+      icon: "☷",
     },
 
     {
-      name:
-        "Leave",
-
-      path:
-        "/leave",
-
-      icon:
-        "▣",
+      name: "Food Feedback",
+      path: "/food-feedback",
+      icon: "★",
     },
 
     {
-      name:
-        "Visitors",
-
-      path:
-        "/visitors",
-
-      icon:
-        "♙",
+      name: "SOS / Emergency",
+      path: "/sos",
+      icon: "🚨",
     },
 
     {
-      name:
-        "Notices",
-
-      path:
-        "/notices",
-
-      icon:
-        "◉",
+      name: "AI Assistant",
+      path: "/ai",
+      icon: "✦",
     },
 
     {
-      name:
-        "SOS / Emergency",
-
-      path:
-        "/sos",
-
-      icon:
-        "🚨",
+      name: "Attendance",
+      path: "/attendance",
+      icon: "✓",
     },
 
     {
-      name:
-        "About Hostel",
-
-      path:
-        "/about-hostel",
-
-      icon:
-        "⌂",
+      name: "Complaints",
+      path: "/complaints",
+      icon: "⚠",
     },
 
     {
-      name:
-        "Website Feedback",
-
-      path:
-        "/website-feedback",
-
-      icon:
-        "✎",
+      name: "Leave",
+      path: "/leave",
+      icon: "▤",
     },
 
     {
-      name:
-        "AI Assistant",
+      name: "Visitors",
+      path: "/visitors",
+      icon: "♙",
+    },
 
-      path:
-        "/ai",
+    {
+      name: "Notices",
+      path: "/notices",
+      icon: "◉",
+    },
 
-      icon:
-        "✦",
+    {
+      name: "Website Feedback",
+      path: "/website-feedback",
+      icon: "✎",
+    },
+
+    {
+      name: "About Hostel",
+      path: "/about-hostel",
+      icon: "⌂",
     },
   ];
 
 
-  const wardenMenu = [
-    {
-      name:
-        "Dashboard",
-
-      path:
-        "/dashboard",
-
-      icon:
-        "▦",
-    },
-
-    {
-      name:
-        "Students",
-
-      path:
-        "/students",
-
-      icon:
-        "♙",
-    },
-
-    {
-      name:
-        "Rooms",
-
-      path:
-        "/rooms",
-
-      icon:
-        "⌂",
-    },
-
-    {
-      name:
-        "Room Allocation",
-
-      path:
-        "/room-allocation",
-
-      icon:
-        "▣",
-    },
-
-    {
-      name:
-        "Fees",
-
-      path:
-        "/fees",
-
-      icon:
-        "₹",
-    },
-
-    {
-      name:
-        "Meal Tracking",
-
-      path:
-        "/meal-tracking",
-
-      icon:
-        "🍽",
-    },
-
-    {
-      name:
-        "Food Menu",
-
-      path:
-        "/food-menu",
-
-      icon:
-        "☷",
-    },
-
-    {
-      name:
-        "Food Feedback",
-
-      path:
-        "/food-feedback",
-
-      icon:
-        "★",
-    },
-
-    {
-      name:
-        "Attendance",
-
-      path:
-        "/attendance",
-
-      icon:
-        "✓",
-    },
-
-    {
-      name:
-        "Complaints",
-
-      path:
-        "/complaints",
-
-      icon:
-        "⚠",
-    },
-
-    {
-      name:
-        "Leave",
-
-      path:
-        "/leave",
-
-      icon:
-        "▤",
-    },
-
-    {
-      name:
-        "Visitors",
-
-      path:
-        "/visitors",
-
-      icon:
-        "♙",
-    },
-
-    {
-      name:
-        "Notices",
-
-      path:
-        "/notices",
-
-      icon:
-        "◉",
-    },
-
-    {
-      name:
-        "SOS Alerts",
-
-      path:
-        "/sos",
-
-      icon:
-        "🚨",
-    },
-
-    {
-      name:
-        "About Hostel",
-
-      path:
-        "/about-hostel",
-
-      icon:
-        "⌂",
-    },
-
-    {
-      name:
-        "AI Center",
-
-      path:
-        "/ai",
-
-      icon:
-        "✦",
-    },
-  ];
-
+  // ==============================================
+  // ADMIN MENU
+  // ==============================================
 
   const adminMenu = [
     {
-      name:
-        "Dashboard",
-
-      path:
-        "/dashboard",
-
-      icon:
-        "▦",
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: "▦",
     },
 
     {
-      name:
-        "Account Management",
-
-      path:
-        "/accounts",
-
-      icon:
-        "♜",
+      name: "Account Management",
+      path: "/accounts",
+      icon: "♜",
     },
 
     {
-      name:
-        "Students",
-
-      path:
-        "/students",
-
-      icon:
-        "♙",
+      name: "Audit Log",
+      path: "/audit-logs",
+      icon: "≡",
     },
 
     {
-      name:
-        "Rooms",
-
-      path:
-        "/rooms",
-
-      icon:
-        "⌂",
+      name: "Students",
+      path: "/students",
+      icon: "♙",
     },
 
     {
-      name:
-        "Room Allocation",
-
-      path:
-        "/room-allocation",
-
-      icon:
-        "▣",
+      name: "Rooms",
+      path: "/rooms",
+      icon: "⌂",
     },
 
     {
-      name:
-        "Fees",
-
-      path:
-        "/fees",
-
-      icon:
-        "₹",
+      name: "Room Allocation",
+      path: "/room-allocation",
+      icon: "▣",
     },
 
     {
-      name:
-        "Meal Tracking",
-
-      path:
-        "/meal-tracking",
-
-      icon:
-        "🍽",
+      name: "Room Transfer",
+      path: "/room-transfer",
+      icon: "⇄",
     },
 
     {
-      name:
-        "Food Menu",
-
-      path:
-        "/food-menu",
-
-      icon:
-        "☷",
+      name: "Maintenance",
+      path: "/maintenance",
+      icon: "⚙",
     },
 
     {
-      name:
-        "Food Feedback",
-
-      path:
-        "/food-feedback",
-
-      icon:
-        "★",
+      name: "Fees",
+      path: "/fees",
+      icon: "₹",
     },
 
     {
-      name:
-        "Attendance",
-
-      path:
-        "/attendance",
-
-      icon:
-        "✓",
+      name: "Meal Tracking",
+      path: "/meal-tracking",
+      icon: "🍽",
     },
 
     {
-      name:
-        "Complaints",
-
-      path:
-        "/complaints",
-
-      icon:
-        "⚠",
+      name: "Food Menu",
+      path: "/food-menu",
+      icon: "☷",
     },
 
     {
-      name:
-        "Leave",
-
-      path:
-        "/leave",
-
-      icon:
-        "▤",
+      name: "Food Feedback",
+      path: "/food-feedback",
+      icon: "★",
     },
 
     {
-      name:
-        "Visitors",
-
-      path:
-        "/visitors",
-
-      icon:
-        "♙",
+      name: "SOS Alerts",
+      path: "/sos",
+      icon: "🚨",
     },
 
     {
-      name:
-        "Notices",
-
-      path:
-        "/notices",
-
-      icon:
-        "◉",
+      name: "AI Center",
+      path: "/ai",
+      icon: "✦",
     },
 
     {
-      name:
-        "SOS Alerts",
-
-      path:
-        "/sos",
-
-      icon:
-        "🚨",
+      name: "Attendance",
+      path: "/attendance",
+      icon: "✓",
     },
 
     {
-      name:
-        "About Hostel",
-
-      path:
-        "/about-hostel",
-
-      icon:
-        "⌂",
+      name: "Complaints",
+      path: "/complaints",
+      icon: "⚠",
     },
 
     {
-      name:
-        "Website Feedback",
-
-      path:
-        "/website-feedback",
-
-      icon:
-        "✎",
+      name: "Leave",
+      path: "/leave",
+      icon: "▤",
     },
 
     {
-      name:
-        "AI Center",
+      name: "Visitors",
+      path: "/visitors",
+      icon: "♙",
+    },
 
-      path:
-        "/ai",
+    {
+      name: "Notices",
+      path: "/notices",
+      icon: "◉",
+    },
 
-      icon:
-        "✦",
+    {
+      name: "Website Feedback",
+      path: "/website-feedback",
+      icon: "✎",
+    },
+
+    {
+      name: "About Hostel",
+      path: "/about-hostel",
+      icon: "⌂",
     },
   ];
 
 
+  // ==============================================
+  // WARDEN MENU
+  // ==============================================
+
+  const wardenMenu = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: "▦",
+    },
+
+    {
+      name: "Students",
+      path: "/students",
+      icon: "♙",
+    },
+
+    {
+      name: "Rooms",
+      path: "/rooms",
+      icon: "⌂",
+    },
+
+    {
+      name: "Room Allocation",
+      path: "/room-allocation",
+      icon: "▣",
+    },
+
+    {
+      name: "Room Transfer",
+      path: "/room-transfer",
+      icon: "⇄",
+    },
+
+    {
+      name: "Maintenance",
+      path: "/maintenance",
+      icon: "⚙",
+    },
+
+    {
+      name: "Fees",
+      path: "/fees",
+      icon: "₹",
+    },
+
+    {
+      name: "Meal Tracking",
+      path: "/meal-tracking",
+      icon: "🍽",
+    },
+
+    {
+      name: "Food Menu",
+      path: "/food-menu",
+      icon: "☷",
+    },
+
+    {
+      name: "Food Feedback",
+      path: "/food-feedback",
+      icon: "★",
+    },
+
+    {
+      name: "SOS Alerts",
+      path: "/sos",
+      icon: "🚨",
+    },
+
+    {
+      name: "AI Center",
+      path: "/ai",
+      icon: "✦",
+    },
+
+    {
+      name: "Attendance",
+      path: "/attendance",
+      icon: "✓",
+    },
+
+    {
+      name: "Complaints",
+      path: "/complaints",
+      icon: "⚠",
+    },
+
+    {
+      name: "Leave",
+      path: "/leave",
+      icon: "▤",
+    },
+
+    {
+      name: "Visitors",
+      path: "/visitors",
+      icon: "♙",
+    },
+
+    {
+      name: "Notices",
+      path: "/notices",
+      icon: "◉",
+    },
+
+    {
+      name: "About Hostel",
+      path: "/about-hostel",
+      icon: "⌂",
+    },
+  ];
+
+
+  // ==============================================
+  // SELECT MENU
+  // ==============================================
+
   let menuItems =
     wardenMenu;
+
 
   if (
     role === "Student"
@@ -597,6 +433,7 @@ function Sidebar() {
     menuItems =
       studentMenu;
   }
+
 
   if (
     role === "Admin"
@@ -606,8 +443,13 @@ function Sidebar() {
   }
 
 
+  // ==============================================
+  // LOGOUT
+  // ==============================================
+
   const handleLogout =
     () => {
+
       localStorage.removeItem(
         "access_token"
       );
@@ -617,32 +459,44 @@ function Sidebar() {
 
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="logo-icon">
-          H
+    <>
+
+      <aside className="sidebar">
+
+        <div className="sidebar-logo">
+
+          <div className="logo-icon">
+            H
+          </div>
+
+
+          <div>
+
+            <h2>
+              HostelHub
+            </h2>
+
+            <span>
+              Management System
+            </span>
+
+          </div>
+
         </div>
 
-        <div>
-          <h2>
-            HostelHub
-          </h2>
 
-          <span>
-            Management System
-          </span>
+        <div className="sidebar-section-title">
+          MAIN MENU
         </div>
-      </div>
 
 
-      <div className="sidebar-section-title">
-        MAIN MENU
-      </div>
+        <nav className="sidebar-nav">
 
+          {menuItems.map(
+            (
+              item
+            ) => (
 
-      <nav className="sidebar-nav">
-        {menuItems.map(
-          (item) => (
             <NavLink
               key={
                 item.path
@@ -658,6 +512,7 @@ function Sidebar() {
                   : "sidebar-link"
               }
             >
+
               <span className="sidebar-icon">
                 {item.icon}
               </span>
@@ -665,44 +520,69 @@ function Sidebar() {
               <span>
                 {item.name}
               </span>
+
             </NavLink>
-          )
-        )}
-      </nav>
+
+            )
+          )}
+
+        </nav>
 
 
-      <div className="sidebar-bottom">
-        <div className="sidebar-user">
-          <div className="user-avatar">
-            {role.charAt(0)}
+        <div className="sidebar-bottom">
+
+          <div className="sidebar-user">
+
+            <div className="user-avatar">
+
+              {
+                role
+                  .charAt(0)
+                  .toUpperCase()
+              }
+
+            </div>
+
+
+            <div className="user-info">
+
+              <strong>
+                {role}
+              </strong>
+
+              <span>
+                Hostel Member
+              </span>
+
+            </div>
+
           </div>
 
-          <div className="user-info">
-            <strong>
-              {role}
-            </strong>
+
+          <button
+            type="button"
+            className="logout-button"
+            onClick={
+              handleLogout
+            }
+          >
 
             <span>
-              Hostel Member
+              ↪
             </span>
-          </div>
+
+            Logout
+
+          </button>
+
         </div>
 
+      </aside>
 
-        <button
-          className="logout-button"
-          onClick={
-            handleLogout
-          }
-        >
-          <span>
-            ↪
-          </span>
 
-          Logout
-        </button>
-      </div>
-    </aside>
+      <Topbar />
+
+    </>
   );
 }
 

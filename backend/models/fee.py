@@ -40,6 +40,29 @@ class Fee(Base):
         nullable=False
     )
 
+    room_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("rooms.id"),
+        nullable=True
+    )
+
+    academic_year: Mapped[str | None] = mapped_column(
+        String(9),
+        nullable=True
+    )
+
+    fee_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="Manual"
+    )
+
+    auto_generated: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
     amount: Mapped[float] = mapped_column(
         Float,
         nullable=False

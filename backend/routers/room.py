@@ -73,7 +73,7 @@ def create_room(
             if room.room_type
             else None
         ),
-        monthly_fee=room.monthly_fee,
+        yearly_fee=room.yearly_fee,
         specifications=(
             room.specifications.strip()
             if room.specifications
@@ -270,13 +270,40 @@ def update_room(
         raise HTTPException(status_code=409, detail="Occupancy changed or was edited. Reload rooms; use allocation to change occupants")
     if room_data.capacity < room.occupied:
         raise HTTPException(status_code=400, detail="Capacity cannot be lower than current occupancy")
-    if room_data.room_number != room.room_number and room.occupied:
-        raise HTTPException(status_code=400, detail="Deallocate occupants before renaming a room")
+    old_room_number = room.room_number
 
     # Older clients omit specifications: preserve those values unless explicitly supplied.
     for field, value in room_data.model_dump(exclude_unset=True).items():
         if field not in {"occupied", "status"}:
             setattr(room, field, value)
+
+    # If an occupied room is renamed, keep linked student profiles in sync.
+    if room.room_number != old_room_number:
+        active_allocations = (
+            db.query(RoomAllocation)
+            .filter(
+                RoomAllocation.room_id == room.id,
+                RoomAllocation.status == "Active"
+            )
+            .all()
+        )
+
+        student_ids = [
+            allocation.student_id
+            for allocation in active_allocations
+        ]
+
+        if student_ids:
+            (
+                db.query(Student)
+                .filter(Student.id.in_(student_ids))
+                .update(
+                    {
+                        Student.room_number: room.room_number
+                    },
+                    synchronize_session=False
+                )
+            )
     room.status = (
         "Maintenance" if room_data.status == "Maintenance"
         else "Occupied" if room.occupied >= room.capacity else "Available"

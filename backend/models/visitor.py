@@ -1,9 +1,30 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+    timezone,
+)
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+)
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+)
 
 from database import Base
+
+
+def utc_now():
+    return (
+        datetime.now(timezone.utc)
+        .replace(tzinfo=None)
+    )
 
 
 class Visitor(Base):
@@ -12,58 +33,108 @@ class Visitor(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
-        index=True
+        index=True,
     )
 
     student_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("students.id"),
-        nullable=False
+        ForeignKey(
+            "students.id"
+        ),
+        nullable=False,
+        index=True,
     )
 
     visitor_name: Mapped[str] = mapped_column(
         String(100),
-        nullable=False
+        nullable=False,
     )
 
     relation: Mapped[str] = mapped_column(
         String(50),
-        nullable=False
+        nullable=False,
     )
 
     phone: Mapped[str] = mapped_column(
         String(15),
-        nullable=False
+        nullable=False,
     )
 
     purpose: Mapped[str] = mapped_column(
         String(255),
-        nullable=False
+        nullable=False,
     )
 
     visit_date: Mapped[date] = mapped_column(
         Date,
         default=date.today,
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
-    check_in: Mapped[datetime | None] = mapped_column(
+    check_in: Mapped[
+        datetime | None
+    ] = mapped_column(
         DateTime,
-        nullable=True
+        nullable=True,
     )
 
-    check_out: Mapped[datetime | None] = mapped_column(
+    check_out: Mapped[
+        datetime | None
+    ] = mapped_column(
         DateTime,
-        nullable=True
+        nullable=True,
     )
 
     status: Mapped[str] = mapped_column(
         String(30),
-        default="Expected",
-        nullable=False
+        default="Pending",
+        nullable=False,
+        index=True,
     )
 
-    remarks: Mapped[str | None] = mapped_column(
+    remarks: Mapped[
+        str | None
+    ] = mapped_column(
         String(500),
-        nullable=True
+        nullable=True,
+    )
+
+
+    # ==========================================
+    # FEATURE 6 — QR VISITOR PASS
+    # ==========================================
+
+    qr_code: Mapped[
+        str | None
+    ] = mapped_column(
+        String(100),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+
+    approved_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    approved_by_user_id: Mapped[
+        int | None
+    ] = mapped_column(
+        Integer,
+        ForeignKey(
+            "users.id"
+        ),
+        nullable=True,
+    )
+
+    created_at: Mapped[
+        datetime
+    ] = mapped_column(
+        DateTime,
+        default=utc_now,
+        nullable=False,
     )

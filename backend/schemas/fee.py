@@ -12,6 +12,11 @@ from pydantic import (
 
 class FeeCreate(BaseModel):
     student_id: int
+    room_id: int | None = None
+    academic_year: str | None = None
+    fee_type: str = "Manual"
+    auto_generated: bool = False
+
     amount: float
     due_date: date
 
@@ -26,6 +31,11 @@ class FeeCreate(BaseModel):
 
 class FeeUpdate(BaseModel):
     student_id: int
+    room_id: int | None = None
+    academic_year: str | None = None
+    fee_type: str = "Manual"
+    auto_generated: bool = False
+
     amount: float
     due_date: date
 
@@ -41,6 +51,12 @@ class FeeUpdate(BaseModel):
 class FeeResponse(BaseModel):
     id: int
     student_id: int
+
+    room_id: int | None
+    academic_year: str | None
+    fee_type: str
+    auto_generated: bool
+
     amount: float
 
     due_date: date

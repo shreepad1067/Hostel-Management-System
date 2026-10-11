@@ -9,34 +9,47 @@ import {
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-
 import Students from "./pages/Students";
 import Rooms from "./pages/Rooms";
 import RoomAllocation from "./pages/RoomAllocation";
-
 import Fees from "./pages/Fees";
-import MyFees from "./pages/MyFees";
 import MyRoom from "./pages/MyRoom";
-
+import MyFees from "./pages/MyFees";
 import MealTracking from "./pages/MealTracking";
 import FoodMenu from "./pages/FoodMenu";
 import FoodFeedback from "./pages/FoodFeedback";
-
+import WebsiteFeedback from "./pages/WebsiteFeedback";
+import AboutHostel from "./pages/AboutHostel";
+import SOS from "./pages/SOS";
+import AIHub from "./pages/AIHub";
+import AccountManagement from "./pages/AccountManagement";
 import Attendance from "./pages/Attendance";
-
 import Complaints from "./pages/Complaints";
 import Leave from "./pages/Leave";
 import Visitors from "./pages/Visitors";
 import Notices from "./pages/Notices";
 
-import WebsiteFeedback from "./pages/WebsiteFeedback";
-import AboutHostel from "./pages/AboutHostel";
 
-import SOS from "./pages/SOS";
-import AIHub from "./pages/AIHub";
+// Feature 1
+import Notifications from "./pages/Notifications";
 
-import AccountManagement from "./pages/AccountManagement";
+// Feature 2
+import StudentProfile from "./pages/StudentProfile";
 
+// Feature 4
+import RoomTransfer from "./pages/RoomTransfer";
+
+// Feature 5
+import Maintenance from "./pages/Maintenance";
+
+// Feature 10
+import AuditLogs from "./pages/AuditLogs";
+
+
+
+// ==============================================
+// USER ROLE
+// ==============================================
 
 function getUserRole() {
   try {
@@ -49,17 +62,36 @@ function getUserRole() {
       return null;
     }
 
-    return JSON.parse(
-      atob(
-        token.split(".")[1]
-      )
-    ).role;
+    let payload =
+      token.split(".")[1];
+
+    payload =
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      payload.length % 4
+    ) {
+      payload += "=";
+    }
+
+    return (
+      JSON.parse(
+        atob(payload)
+      ).role ||
+      null
+    );
 
   } catch {
     return null;
   }
 }
 
+
+// ==============================================
+// PROTECTED ROUTE
+// ==============================================
 
 function ProtectedRoute({
   children,
@@ -73,7 +105,11 @@ function ProtectedRoute({
   const role =
     getUserRole();
 
-  if (!token || !role) {
+
+  if (
+    !token ||
+    !role
+  ) {
     return (
       <Navigate
         to="/"
@@ -81,6 +117,7 @@ function ProtectedRoute({
       />
     );
   }
+
 
   if (
     !allowedRoles.includes(
@@ -95,9 +132,14 @@ function ProtectedRoute({
     );
   }
 
+
   return children;
 }
 
+
+// ==============================================
+// ROLES
+// ==============================================
 
 const ALL_ROLES = [
   "Admin",
@@ -106,10 +148,17 @@ const ALL_ROLES = [
 ];
 
 
+// ==============================================
+// APP
+// ==============================================
+
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
+
+        {/* LOGIN */}
 
         <Route
           path="/"
@@ -130,6 +179,8 @@ function App() {
         />
 
 
+        {/* DASHBOARD */}
+
         <Route
           path="/dashboard"
           element={
@@ -144,6 +195,56 @@ function App() {
         />
 
 
+        {/* FEATURE 1 — NOTIFICATIONS */}
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 2 — STUDENT PROFILE */}
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Student",
+              ]}
+            >
+              <StudentProfile />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 10 — AUDIT LOG */}
+
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Admin",
+              ]}
+            >
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ACCOUNT MANAGEMENT */}
+
         <Route
           path="/accounts"
           element={
@@ -157,6 +258,8 @@ function App() {
           }
         />
 
+
+        {/* STUDENTS */}
 
         <Route
           path="/students"
@@ -173,6 +276,8 @@ function App() {
         />
 
 
+        {/* FEATURE 3 — ROOMS */}
+
         <Route
           path="/rooms"
           element={
@@ -187,6 +292,8 @@ function App() {
           }
         />
 
+
+        {/* ROOM ALLOCATION */}
 
         <Route
           path="/room-allocation"
@@ -203,6 +310,40 @@ function App() {
         />
 
 
+        {/* FEATURE 4 — ROOM TRANSFER */}
+
+        <Route
+          path="/room-transfer"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <RoomTransfer />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 5 — MAINTENANCE */}
+
+        <Route
+          path="/maintenance"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <Maintenance />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEES */}
+
         <Route
           path="/fees"
           element={
@@ -213,20 +354,6 @@ function App() {
               ]}
             >
               <Fees />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/my-room"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "Student",
-              ]}
-            >
-              <MyRoom />
             </ProtectedRoute>
           }
         />
@@ -246,6 +373,24 @@ function App() {
         />
 
 
+        {/* STUDENT ROOM */}
+
+        <Route
+          path="/my-room"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Student",
+              ]}
+            >
+              <MyRoom />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* MEAL TRACKING */}
+
         <Route
           path="/meal-tracking"
           element={
@@ -259,6 +404,8 @@ function App() {
           }
         />
 
+
+        {/* FOOD MENU */}
 
         <Route
           path="/food-menu"
@@ -274,6 +421,8 @@ function App() {
         />
 
 
+        {/* FOOD FEEDBACK */}
+
         <Route
           path="/food-feedback"
           element={
@@ -287,6 +436,40 @@ function App() {
           }
         />
 
+
+        {/* SOS */}
+
+        <Route
+          path="/sos"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <SOS />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* AI */}
+
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <AIHub />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ATTENDANCE */}
 
         <Route
           path="/attendance"
@@ -302,6 +485,8 @@ function App() {
         />
 
 
+        {/* COMPLAINTS */}
+
         <Route
           path="/complaints"
           element={
@@ -315,6 +500,8 @@ function App() {
           }
         />
 
+
+        {/* LEAVE */}
 
         <Route
           path="/leave"
@@ -330,6 +517,8 @@ function App() {
         />
 
 
+        {/* FEATURE 6 — VISITORS */}
+
         <Route
           path="/visitors"
           element={
@@ -344,6 +533,8 @@ function App() {
         />
 
 
+        {/* NOTICES */}
+
         <Route
           path="/notices"
           element={
@@ -357,6 +548,8 @@ function App() {
           }
         />
 
+
+        {/* WEBSITE FEEDBACK */}
 
         <Route
           path="/website-feedback"
@@ -373,6 +566,8 @@ function App() {
         />
 
 
+        {/* ABOUT HOSTEL */}
+
         <Route
           path="/about-hostel"
           element={
@@ -387,33 +582,7 @@ function App() {
         />
 
 
-        <Route
-          path="/sos"
-          element={
-            <ProtectedRoute
-              allowedRoles={
-                ALL_ROLES
-              }
-            >
-              <SOS />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/ai"
-          element={
-            <ProtectedRoute
-              allowedRoles={
-                ALL_ROLES
-              }
-            >
-              <AIHub />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* FALLBACK */}
 
         <Route
           path="*"
@@ -426,6 +595,7 @@ function App() {
         />
 
       </Routes>
+
     </BrowserRouter>
   );
 }

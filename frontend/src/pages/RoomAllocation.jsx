@@ -491,7 +491,7 @@ function RoomAllocation() {
                   <tbody>{availableRooms.map(room => <tr key={room.id}>
                     <td>{room.room_number}</td><td>{room.block || "—"} / {room.floor}</td>
                     <td>{room.bathroom_type || "Unspecified"}</td><td>{room.room_type || "Unspecified"}</td>
-                    <td>{room.monthly_fee == null ? "Unspecified" : `₹${room.monthly_fee}`}</td>
+                    <td>{room.yearly_fee == null ? "Unspecified" : `₹${room.yearly_fee}`}</td>
                     <td>{room.specifications || "—"}</td><td>{room.capacity - room.occupied}</td>
                     <td><button type="button" className="secondary-button" disabled={saving}
                       aria-pressed={String(room.id) === formData.room_id}

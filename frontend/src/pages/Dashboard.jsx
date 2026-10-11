@@ -11,13 +11,21 @@ import {
 
 import Sidebar from "../components/Sidebar";
 
+import {
+  DonutChart,
+  MetricBar,
+  MiniBarChart,
+  ProgressMetric,
+} from "../components/DashboardCharts";
+
 import "../components/Sidebar.css";
+import "../components/DashboardCharts.css";
 import "./Dashboard.css";
 
 import api from "../services/api";
 
 
-function getTokenPayload() {
+function decodeToken() {
   try {
     const token =
       localStorage.getItem(
@@ -28,10 +36,22 @@ function getTokenPayload() {
       return {};
     }
 
+    let payload =
+      token.split(".")[1];
+
+    payload =
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      payload.length % 4
+    ) {
+      payload += "=";
+    }
+
     return JSON.parse(
-      atob(
-        token.split(".")[1]
-      )
+      atob(payload)
     );
 
   } catch {
@@ -40,1456 +60,54 @@ function getTokenPayload() {
 }
 
 
-function getToday() {
-  const now =
-    new Date();
+function numberValue(
+  value
+) {
+  const number =
+    Number(value);
 
-  const local =
-    new Date(
-      now.getTime()
-      - now.getTimezoneOffset()
-      * 60000
-    );
-
-  return local
-    .toISOString()
-    .split("T")[0];
+  return Number.isFinite(
+    number
+  )
+    ? number
+    : 0;
 }
 
 
-function formatMoney(value) {
-  return `₹${Number(
-    value || 0
-  ).toLocaleString(
+function formatMoney(
+  value
+) {
+  return new Intl.NumberFormat(
     "en-IN",
     {
-      maximumFractionDigits: 2,
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
     }
-  )}`;
+  ).format(
+    numberValue(
+      value
+    )
+  );
 }
 
 
-function formatDateLong() {
-  return new Date()
-    .toLocaleDateString(
-      "en-IN",
-      {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }
-    );
-}
-
-
-async function safeGet(
-  url,
-  fallback
+function getErrorMessage(
+  error
 ) {
-  try {
-    const response =
-      await api.get(url);
-
-    return {
-      ok: true,
-      data: response.data,
-    };
-
-  } catch {
-    return {
-      ok: false,
-      data: fallback,
-    };
-  }
-}
-
-
-function StatCard({
-  icon,
-  label,
-  value,
-  subtitle,
-  onClick,
-}) {
-  return (
-    <button
-      type="button"
-      className="hub-stat-card"
-      onClick={onClick}
-    >
-      <div className="hub-stat-icon">
-        {icon}
-      </div>
-
-      <div className="hub-stat-content">
-        <span>
-          {label}
-        </span>
-
-        <strong>
-          {value}
-        </strong>
-
-        {subtitle && (
-          <small>
-            {subtitle}
-          </small>
-        )}
-      </div>
-
-      <div className="hub-stat-arrow">
-        →
-      </div>
-    </button>
-  );
-}
-
-
-function QuickAction({
-  icon,
-  title,
-  description,
-  onClick,
-}) {
-  return (
-    <button
-      type="button"
-      className="hub-quick-action"
-      onClick={onClick}
-    >
-      <span className="hub-quick-icon">
-        {icon}
-      </span>
-
-      <div>
-        <strong>
-          {title}
-        </strong>
-
-        <p>
-          {description}
-        </p>
-      </div>
-
-      <span className="hub-quick-arrow">
-        →
-      </span>
-    </button>
-  );
-}
-
-
-function NoticeList({
-  notices,
-}) {
   if (
-    !Array.isArray(notices)
-    || notices.length === 0
+    !error?.response
   ) {
     return (
-      <div className="hub-empty-mini">
-        <span>◉</span>
-
-        <p>
-          No notices available.
-        </p>
-      </div>
+      "Unable to connect to the backend."
     );
   }
 
   return (
-    <div className="hub-notice-list">
-      {notices
-        .slice(0, 4)
-        .map(
-          (notice) => (
-            <article
-              key={
-                notice.id
-                ?? `${notice.title}-${Math.random()}`
-              }
-              className="hub-notice-item"
-            >
-              <div className="hub-notice-dot" />
-
-              <div>
-                <strong>
-                  {notice.title
-                    || "Hostel Notice"}
-                </strong>
-
-                <p>
-                  {notice.content
-                    || notice.message
-                    || notice.description
-                    || "Open Notices to view details."}
-                </p>
-              </div>
-            </article>
-          )
-        )}
-    </div>
-  );
-}
-
-
-function AdminDashboard({
-  navigate,
-}) {
-  const [data, setData] =
-    useState({
-      students: [],
-      rooms: [],
-      fees: [],
-      meals: [],
-      attendance: [],
-      feedbackSummary: [],
-      websiteFeedback: [],
-      notices: [],
-    });
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [partialError, setPartialError] =
-    useState(false);
-
-
-  const loadDashboard =
-    useCallback(
-      async () => {
-        setLoading(true);
-
-        const today =
-          getToday();
-
-        const results =
-          await Promise.all([
-            safeGet(
-              "/students/",
-              []
-            ),
-
-            safeGet(
-              "/rooms/",
-              []
-            ),
-
-            safeGet(
-              "/fees/",
-              []
-            ),
-
-            safeGet(
-              `/meals/records?meal_date=${today}`,
-              []
-            ),
-
-            safeGet(
-              "/attendance/",
-              []
-            ),
-
-            safeGet(
-              "/food-feedback/summary",
-              []
-            ),
-
-            safeGet(
-              "/website-feedback/records",
-              []
-            ),
-
-            safeGet(
-              "/notices/",
-              []
-            ),
-          ]);
-
-        const [
-          students,
-          rooms,
-          fees,
-          meals,
-          attendance,
-          feedbackSummary,
-          websiteFeedback,
-          notices,
-        ] = results;
-
-        setPartialError(
-          results.some(
-            (result) =>
-              !result.ok
-          )
-        );
-
-        setData({
-          students:
-            students.data,
-
-          rooms:
-            rooms.data,
-
-          fees:
-            fees.data,
-
-          meals:
-            meals.data,
-
-          attendance:
-            attendance.data,
-
-          feedbackSummary:
-            feedbackSummary.data,
-
-          websiteFeedback:
-            websiteFeedback.data,
-
-          notices:
-            notices.data,
-        });
-
-        setLoading(false);
-      },
-      []
-    );
-
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-
-  const calculations =
-    useMemo(
-      () => {
-        const today =
-          getToday();
-
-        const pendingFees =
-          data.fees.filter(
-            (fee) => {
-              const status =
-                String(
-                  fee.status || ""
-                ).toLowerCase();
-
-              return (
-                status === "pending"
-                || status === "overdue"
-              );
-            }
-          );
-
-        const pendingAmount =
-          pendingFees.reduce(
-            (sum, fee) =>
-              sum
-              + Number(
-                fee.amount || 0
-              ),
-            0
-          );
-
-        const availableBeds =
-          data.rooms.reduce(
-            (sum, room) =>
-              sum
-              + Math.max(
-                0,
-                Number(
-                  room.capacity || 0
-                )
-                - Number(
-                  room.occupied || 0
-                )
-              ),
-            0
-          );
-
-        const todayAttendance =
-          data.attendance.filter(
-            (record) =>
-              record.attendance_date
-              === today
-          );
-
-        const presentToday =
-          todayAttendance.filter(
-            (record) =>
-              String(
-                record.status
-              ).toLowerCase()
-              === "present"
-          ).length;
-
-        const unresolvedFeedback =
-          data.websiteFeedback.filter(
-            (record) =>
-              String(
-                record.status
-              ).toLowerCase()
-              !== "resolved"
-          ).length;
-
-        const feedbackResponses =
-          data.feedbackSummary.reduce(
-            (sum, item) =>
-              sum
-              + Number(
-                item.responses || 0
-              ),
-            0
-          );
-
-        const weightedFeedback =
-          data.feedbackSummary.reduce(
-            (sum, item) =>
-              sum
-              + (
-                Number(
-                  item.overall || 0
-                )
-                * Number(
-                  item.responses || 0
-                )
-              ),
-            0
-          );
-
-        const foodRating =
-          feedbackResponses > 0
-            ? (
-                weightedFeedback
-                / feedbackResponses
-              ).toFixed(1)
-            : "—";
-
-        return {
-          pendingAmount,
-          availableBeds,
-          presentToday,
-          todayAttendance:
-            todayAttendance.length,
-
-          unresolvedFeedback,
-          foodRating,
-        };
-      },
-      [data]
-    );
-
-
-  if (loading) {
-    return (
-      <div className="hub-dashboard-loading">
-        <div className="hub-loading-spinner" />
-
-        <h3>
-          Loading dashboard...
-        </h3>
-      </div>
-    );
-  }
-
-
-  return (
-    <>
-      {partialError && (
-        <div className="hub-warning">
-          Some dashboard information
-          could not be loaded. The rest
-          of HostelHub is still available.
-        </div>
-      )}
-
-
-      <section className="hub-stat-grid">
-        <StatCard
-          icon="♙"
-          label="Students"
-          value={
-            data.students.length
-          }
-          subtitle="Registered students"
-          onClick={() =>
-            navigate(
-              "/students"
-            )
-          }
-        />
-
-        <StatCard
-          icon="⌂"
-          label="Available Beds"
-          value={
-            calculations.availableBeds
-          }
-          subtitle={
-            `${data.rooms.length} rooms`
-          }
-          onClick={() =>
-            navigate(
-              "/rooms"
-            )
-          }
-        />
-
-        <StatCard
-          icon="₹"
-          label="Pending Fees"
-          value={
-            formatMoney(
-              calculations.pendingAmount
-            )
-          }
-          subtitle="Pending + overdue"
-          onClick={() =>
-            navigate(
-              "/fees"
-            )
-          }
-        />
-
-        <StatCard
-          icon="🍽"
-          label="Meals Today"
-          value={
-            data.meals.length
-          }
-          subtitle="Collections recorded"
-          onClick={() =>
-            navigate(
-              "/meal-tracking"
-            )
-          }
-        />
-
-        <StatCard
-          icon="✓"
-          label="Attendance Today"
-          value={
-            calculations.todayAttendance
-              ? `${calculations.presentToday}/${calculations.todayAttendance}`
-              : "—"
-          }
-          subtitle="Students present"
-          onClick={() =>
-            navigate(
-              "/attendance"
-            )
-          }
-        />
-
-        <StatCard
-          icon="★"
-          label="Food Rating"
-          value={
-            calculations.foodRating
-            === "—"
-              ? "—"
-              : `${calculations.foodRating}/5`
-          }
-          subtitle="Student feedback"
-          onClick={() =>
-            navigate(
-              "/food-feedback"
-            )
-          }
-        />
-
-        <StatCard
-          icon="✎"
-          label="Website Feedback"
-          value={
-            calculations.unresolvedFeedback
-          }
-          subtitle="Not yet resolved"
-          onClick={() =>
-            navigate(
-              "/website-feedback"
-            )
-          }
-        />
-
-        <StatCard
-          icon="✦"
-          label="AI Center"
-          value="Open"
-          subtitle="HostelHub AI tools"
-          onClick={() =>
-            navigate(
-              "/ai"
-            )
-          }
-        />
-      </section>
-
-
-      <section className="hub-dashboard-columns">
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                QUICK ACCESS
-              </span>
-
-              <h2>
-                Administration
-              </h2>
-            </div>
-          </div>
-
-          <div className="hub-quick-grid">
-            <QuickAction
-              icon="♜"
-              title="Account Management"
-              description="Manage Warden and Student accounts."
-              onClick={() =>
-                navigate(
-                  "/accounts"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="▣"
-              title="Room Allocation"
-              description="Allocate available hostel rooms."
-              onClick={() =>
-                navigate(
-                  "/room-allocation"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="🚨"
-              title="SOS Alerts"
-              description="Monitor student emergency reports."
-              onClick={() =>
-                navigate(
-                  "/sos"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="⌂"
-              title="About Hostel"
-              description="Update public hostel information."
-              onClick={() =>
-                navigate(
-                  "/about-hostel"
-                )
-              }
-            />
-          </div>
-        </div>
-
-
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                LATEST
-              </span>
-
-              <h2>
-                Notices
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/notices"
-                )
-              }
-            >
-              View All
-            </button>
-          </div>
-
-          <NoticeList
-            notices={
-              data.notices
-            }
-          />
-        </div>
-      </section>
-    </>
-  );
-}
-
-
-function WardenDashboard({
-  navigate,
-}) {
-  const [data, setData] =
-    useState({
-      students: [],
-      rooms: [],
-      fees: [],
-      meals: [],
-      attendance: [],
-      foodMenu: [],
-      foodFeedback: [],
-      notices: [],
-    });
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [partialError, setPartialError] =
-    useState(false);
-
-
-  const loadDashboard =
-    useCallback(
-      async () => {
-        const today =
-          getToday();
-
-        const results =
-          await Promise.all([
-            safeGet(
-              "/students/",
-              []
-            ),
-
-            safeGet(
-              "/rooms/",
-              []
-            ),
-
-            safeGet(
-              "/fees/",
-              []
-            ),
-
-            safeGet(
-              `/meals/records?meal_date=${today}`,
-              []
-            ),
-
-            safeGet(
-              "/attendance/",
-              []
-            ),
-
-            safeGet(
-              "/food-menu/today",
-              []
-            ),
-
-            safeGet(
-              "/food-feedback/summary",
-              []
-            ),
-
-            safeGet(
-              "/notices/",
-              []
-            ),
-          ]);
-
-        const [
-          students,
-          rooms,
-          fees,
-          meals,
-          attendance,
-          foodMenu,
-          foodFeedback,
-          notices,
-        ] = results;
-
-        setPartialError(
-          results.some(
-            (item) =>
-              !item.ok
-          )
-        );
-
-        setData({
-          students:
-            students.data,
-
-          rooms:
-            rooms.data,
-
-          fees:
-            fees.data,
-
-          meals:
-            meals.data,
-
-          attendance:
-            attendance.data,
-
-          foodMenu:
-            foodMenu.data,
-
-          foodFeedback:
-            foodFeedback.data,
-
-          notices:
-            notices.data,
-        });
-
-        setLoading(false);
-      },
-      []
-    );
-
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-
-  const todayAttendance =
-    data.attendance.filter(
-      (record) =>
-        record.attendance_date
-        === getToday()
-    );
-
-
-  const presentToday =
-    todayAttendance.filter(
-      (record) =>
-        String(
-          record.status
-        ).toLowerCase()
-        === "present"
-    ).length;
-
-
-  const pendingFees =
-    data.fees.filter(
-      (fee) =>
-        String(
-          fee.status
-        ).toLowerCase()
-        !== "paid"
-    );
-
-
-  if (loading) {
-    return (
-      <div className="hub-dashboard-loading">
-        <div className="hub-loading-spinner" />
-
-        <h3>
-          Loading dashboard...
-        </h3>
-      </div>
-    );
-  }
-
-
-  return (
-    <>
-      {partialError && (
-        <div className="hub-warning">
-          Some dashboard information
-          could not be loaded.
-        </div>
-      )}
-
-
-      <section className="hub-stat-grid">
-        <StatCard
-          icon="♙"
-          label="Students"
-          value={
-            data.students.length
-          }
-          subtitle="Hostel residents"
-          onClick={() =>
-            navigate(
-              "/students"
-            )
-          }
-        />
-
-        <StatCard
-          icon="⌂"
-          label="Rooms"
-          value={
-            data.rooms.length
-          }
-          subtitle="Hostel rooms"
-          onClick={() =>
-            navigate(
-              "/rooms"
-            )
-          }
-        />
-
-        <StatCard
-          icon="₹"
-          label="Pending Fees"
-          value={
-            pendingFees.length
-          }
-          subtitle="Records to monitor"
-          onClick={() =>
-            navigate(
-              "/fees"
-            )
-          }
-        />
-
-        <StatCard
-          icon="🍽"
-          label="Meals Today"
-          value={
-            data.meals.length
-          }
-          subtitle="Collected meals"
-          onClick={() =>
-            navigate(
-              "/meal-tracking"
-            )
-          }
-        />
-
-        <StatCard
-          icon="✓"
-          label="Attendance"
-          value={
-            todayAttendance.length
-              ? `${presentToday}/${todayAttendance.length}`
-              : "—"
-          }
-          subtitle="Present today"
-          onClick={() =>
-            navigate(
-              "/attendance"
-            )
-          }
-        />
-
-        <StatCard
-          icon="☷"
-          label="Today's Menu"
-          value={
-            data.foodMenu.length
-          }
-          subtitle="Meals configured"
-          onClick={() =>
-            navigate(
-              "/food-menu"
-            )
-          }
-        />
-      </section>
-
-
-      <section className="hub-dashboard-columns">
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                WARDEN TOOLS
-              </span>
-
-              <h2>
-                Daily Operations
-              </h2>
-            </div>
-          </div>
-
-          <div className="hub-quick-grid">
-            <QuickAction
-              icon="🍽"
-              title="Generate Meal QR"
-              description="Open meal tracking and generate today's QR."
-              onClick={() =>
-                navigate(
-                  "/meal-tracking"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="✓"
-              title="Mark Attendance"
-              description="Mark attendance by block and floor."
-              onClick={() =>
-                navigate(
-                  "/attendance"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="☷"
-              title="Manage Food Menu"
-              description="Create or update weekly meal menus."
-              onClick={() =>
-                navigate(
-                  "/food-menu"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="🚨"
-              title="SOS Verification"
-              description="Review student emergency alerts."
-              onClick={() =>
-                navigate(
-                  "/sos"
-                )
-              }
-            />
-          </div>
-        </div>
-
-
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                LATEST
-              </span>
-
-              <h2>
-                Notices
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/notices"
-                )
-              }
-            >
-              View All
-            </button>
-          </div>
-
-          <NoticeList
-            notices={
-              data.notices
-            }
-          />
-        </div>
-      </section>
-    </>
-  );
-}
-
-
-function StudentDashboard({
-  navigate,
-}) {
-  const [data, setData] =
-    useState({
-      room: null,
-      fees: [],
-      meals: [],
-      attendance: [],
-      menu: [],
-      notices: [],
-    });
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [partialError, setPartialError] =
-    useState(false);
-
-
-  const loadDashboard =
-    useCallback(
-      async () => {
-        const results =
-          await Promise.all([
-            safeGet(
-              "/rooms/my-room",
-              null
-            ),
-
-            safeGet(
-              "/fees/my-fees",
-              []
-            ),
-
-            safeGet(
-              "/meals/my-today",
-              []
-            ),
-
-            safeGet(
-              "/attendance/my-attendance",
-              []
-            ),
-
-            safeGet(
-              "/food-menu/today",
-              []
-            ),
-
-            safeGet(
-              "/notices/",
-              []
-            ),
-          ]);
-
-        const [
-          room,
-          fees,
-          meals,
-          attendance,
-          menu,
-          notices,
-        ] = results;
-
-        setPartialError(
-          results.some(
-            (item) =>
-              !item.ok
-          )
-        );
-
-        setData({
-          room:
-            room.data,
-
-          fees:
-            fees.data,
-
-          meals:
-            meals.data,
-
-          attendance:
-            attendance.data,
-
-          menu:
-            menu.data,
-
-          notices:
-            notices.data,
-        });
-
-        setLoading(false);
-      },
-      []
-    );
-
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-
-  const pendingAmount =
-    data.fees
-      .filter(
-        (fee) =>
-          String(
-            fee.status
-          ).toLowerCase()
-          !== "paid"
-      )
-      .reduce(
-        (sum, fee) =>
-          sum
-          + Number(
-            fee.amount || 0
-          ),
-        0
-      );
-
-
-  const attendanceTotal =
-    data.attendance.length;
-
-
-  const presentCount =
-    data.attendance.filter(
-      (record) =>
-        String(
-          record.status
-        ).toLowerCase()
-        === "present"
-    ).length;
-
-
-  const attendancePercent =
-    attendanceTotal > 0
-      ? Math.round(
-          (
-            presentCount
-            / attendanceTotal
-          )
-          * 100
-        )
-      : null;
-
-
-  const room =
-    data.room?.room
-    || data.room;
-
-
-  if (loading) {
-    return (
-      <div className="hub-dashboard-loading">
-        <div className="hub-loading-spinner" />
-
-        <h3>
-          Loading dashboard...
-        </h3>
-      </div>
-    );
-  }
-
-
-  return (
-    <>
-      {partialError && (
-        <div className="hub-warning">
-          Some dashboard information
-          could not be loaded.
-        </div>
-      )}
-
-
-      <section className="hub-student-hero">
-        <div>
-          <span className="hub-student-label">
-            MY HOSTEL
-          </span>
-
-          <h2>
-            Everything you need,
-            in one place.
-          </h2>
-
-          <p>
-            Check your room, meals,
-            attendance, fees and hostel
-            updates from your dashboard.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              "/about-hostel"
-            )
-          }
-        >
-          About Hostel
-          <span>→</span>
-        </button>
-      </section>
-
-
-      <section className="hub-stat-grid">
-        <StatCard
-          icon="⌂"
-          label="My Room"
-          value={
-            room?.room_number
-            || "Not Allocated"
-          }
-          subtitle={
-            room?.block
-              ? `Block ${room.block}, Floor ${room.floor}`
-              : "View room details"
-          }
-          onClick={() =>
-            navigate(
-              "/my-room"
-            )
-          }
-        />
-
-        <StatCard
-          icon="₹"
-          label="Pending Fees"
-          value={
-            formatMoney(
-              pendingAmount
-            )
-          }
-          subtitle="Current unpaid amount"
-          onClick={() =>
-            navigate(
-              "/my-fees"
-            )
-          }
-        />
-
-        <StatCard
-          icon="🍽"
-          label="Meals Today"
-          value={
-            `${data.meals.length}/4`
-          }
-          subtitle="Meals collected"
-          onClick={() =>
-            navigate(
-              "/meal-tracking"
-            )
-          }
-        />
-
-        <StatCard
-          icon="✓"
-          label="Attendance"
-          value={
-            attendancePercent === null
-              ? "—"
-              : `${attendancePercent}%`
-          }
-          subtitle={
-            attendanceTotal
-              ? `${presentCount} present of ${attendanceTotal}`
-              : "No records yet"
-          }
-          onClick={() =>
-            navigate(
-              "/attendance"
-            )
-          }
-        />
-
-        <StatCard
-          icon="☷"
-          label="Today's Menu"
-          value={
-            data.menu.length
-          }
-          subtitle="Meals listed today"
-          onClick={() =>
-            navigate(
-              "/food-menu"
-            )
-          }
-        />
-
-        <StatCard
-          icon="★"
-          label="Food Feedback"
-          value="Rate"
-          subtitle="Rate collected meals"
-          onClick={() =>
-            navigate(
-              "/food-feedback"
-            )
-          }
-        />
-      </section>
-
-
-      <section className="hub-dashboard-columns">
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                QUICK ACCESS
-              </span>
-
-              <h2>
-                Student Services
-              </h2>
-            </div>
-          </div>
-
-          <div className="hub-quick-grid">
-            <QuickAction
-              icon="🍽"
-              title="Scan Meal QR"
-              description="Confirm your meal during collection."
-              onClick={() =>
-                navigate(
-                  "/meal-tracking"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="⚠"
-              title="Complaints"
-              description="Report hostel maintenance or service issues."
-              onClick={() =>
-                navigate(
-                  "/complaints"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="🚨"
-              title="SOS / Emergency"
-              description="Send an emergency alert when needed."
-              onClick={() =>
-                navigate(
-                  "/sos"
-                )
-              }
-            />
-
-            <QuickAction
-              icon="✦"
-              title="AI Assistant"
-              description="Get help using HostelHub AI."
-              onClick={() =>
-                navigate(
-                  "/ai"
-                )
-              }
-            />
-          </div>
-        </div>
-
-
-        <div className="overview-card">
-          <div className="hub-card-heading">
-            <div>
-              <span>
-                HOSTEL UPDATES
-              </span>
-
-              <h2>
-                Latest Notices
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/notices"
-                )
-              }
-            >
-              View All
-            </button>
-          </div>
-
-          <NoticeList
-            notices={
-              data.notices
-            }
-          />
-        </div>
-      </section>
-    </>
+    error.response
+      ?.data
+      ?.detail ||
+    "Some dashboard data could not be loaded."
   );
 }
 
@@ -1499,73 +117,1643 @@ function Dashboard() {
     useNavigate();
 
   const payload =
-    getTokenPayload();
+    decodeToken();
 
   const role =
-    payload.role
-    || "Student";
+    payload.role ||
+    "User";
+
+  const isStudent =
+    role === "Student";
+
+  const isAdmin =
+    role === "Admin";
+
+  const isManagement =
+    role === "Admin" ||
+    role === "Warden";
+
+
+  // ==========================================
+  // DATA
+  // ==========================================
+
+  const [
+    students,
+    setStudents,
+  ] = useState([]);
+
+  const [
+    rooms,
+    setRooms,
+  ] = useState([]);
+
+  const [
+    fees,
+    setFees,
+  ] = useState([]);
+
+  const [
+    maintenance,
+    setMaintenance,
+  ] = useState([]);
+
+  const [
+    complaints,
+    setComplaints,
+  ] = useState([]);
+
+  const [
+    leaveRecords,
+    setLeaveRecords,
+  ] = useState([]);
+
+  const [
+    visitors,
+    setVisitors,
+  ] = useState([]);
+
+  const [
+    attendance,
+    setAttendance,
+  ] = useState([]);
+
+  const [
+    studentProfile,
+    setStudentProfile,
+  ] = useState(null);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    warning,
+    setWarning,
+  ] = useState("");
+
+
+  // ==========================================
+  // SAFE REQUEST
+  // ==========================================
+
+  const safeGet =
+    async (
+      path
+    ) => {
+
+      try {
+        const response =
+          await api.get(
+            path
+          );
+
+        return response.data;
+
+      } catch {
+        return null;
+      }
+    };
+
+
+  // ==========================================
+  // MANAGEMENT DASHBOARD
+  // ==========================================
+
+  const loadManagementDashboard =
+    useCallback(
+      async () => {
+
+        setLoading(true);
+
+        setWarning("");
+
+
+        const results =
+          await Promise.all([
+            safeGet(
+              "/students/"
+            ),
+
+            safeGet(
+              "/rooms/"
+            ),
+
+            safeGet(
+              "/fees/"
+            ),
+
+            safeGet(
+              "/maintenance/"
+            ),
+
+            safeGet(
+              "/complaints/"
+            ),
+
+            safeGet(
+              "/leaves/"
+            ),
+
+            safeGet(
+              "/visitors/"
+            ),
+
+            safeGet(
+              "/attendance/"
+            ),
+          ]);
+
+
+        const [
+          studentData,
+          roomData,
+          feeData,
+          maintenanceData,
+          complaintData,
+          leaveData,
+          visitorData,
+          attendanceData,
+        ] =
+          results;
+
+
+        setStudents(
+          Array.isArray(
+            studentData
+          )
+            ? studentData
+            : []
+        );
+
+
+        setRooms(
+          Array.isArray(
+            roomData
+          )
+            ? roomData
+            : []
+        );
+
+
+        setFees(
+          Array.isArray(
+            feeData
+          )
+            ? feeData
+            : []
+        );
+
+
+        setMaintenance(
+          Array.isArray(
+            maintenanceData
+          )
+            ? maintenanceData
+            : []
+        );
+
+
+        setComplaints(
+          Array.isArray(
+            complaintData
+          )
+            ? complaintData
+            : []
+        );
+
+
+        setLeaveRecords(
+          Array.isArray(
+            leaveData
+          )
+            ? leaveData
+            : []
+        );
+
+
+        setVisitors(
+          Array.isArray(
+            visitorData
+          )
+            ? visitorData
+            : []
+        );
+
+
+        setAttendance(
+          Array.isArray(
+            attendanceData
+          )
+            ? attendanceData
+            : []
+        );
+
+
+        setLoading(false);
+      },
+      []
+    );
+
+
+  // ==========================================
+  // STUDENT DASHBOARD
+  // ==========================================
+
+  const loadStudentDashboard =
+    useCallback(
+      async () => {
+
+        setLoading(true);
+
+        setWarning("");
+
+
+        try {
+
+          const [
+            profileResult,
+            feesResult,
+            attendanceResult,
+            complaintResult,
+            leaveResult,
+            visitorResult,
+            maintenanceResult,
+          ] =
+            await Promise.allSettled([
+              api.get(
+                "/students/profile/me"
+              ),
+
+              api.get(
+                "/fees/my-fees"
+              ),
+
+              api.get(
+                "/attendance/my-attendance"
+              ),
+
+              api.get(
+                "/complaints/"
+              ),
+
+              api.get(
+                "/leaves/my-leaves"
+              ),
+
+              api.get(
+                "/visitors/my-visitors"
+              ),
+
+              api.get(
+                "/maintenance/"
+              ),
+            ]);
+
+
+          if (
+            profileResult.status ===
+            "fulfilled"
+          ) {
+            setStudentProfile(
+              profileResult.value.data
+            );
+          }
+
+
+          if (
+            feesResult.status ===
+            "fulfilled"
+          ) {
+            setFees(
+              Array.isArray(
+                feesResult.value.data
+              )
+                ? feesResult.value.data
+                : []
+            );
+          }
+
+
+          if (
+            attendanceResult.status ===
+            "fulfilled"
+          ) {
+            setAttendance(
+              Array.isArray(
+                attendanceResult.value.data
+              )
+                ? attendanceResult.value.data
+                : []
+            );
+          }
+
+
+          if (
+            complaintResult.status ===
+            "fulfilled"
+          ) {
+            setComplaints(
+              Array.isArray(
+                complaintResult.value.data
+              )
+                ? complaintResult.value.data
+                : []
+            );
+          }
+
+
+          if (
+            leaveResult.status ===
+            "fulfilled"
+          ) {
+            setLeaveRecords(
+              Array.isArray(
+                leaveResult.value.data
+              )
+                ? leaveResult.value.data
+                : []
+            );
+          }
+
+
+          if (
+            visitorResult.status ===
+            "fulfilled"
+          ) {
+            setVisitors(
+              Array.isArray(
+                visitorResult.value.data
+              )
+                ? visitorResult.value.data
+                : []
+            );
+          }
+
+
+          if (
+            maintenanceResult.status ===
+            "fulfilled"
+          ) {
+            setMaintenance(
+              Array.isArray(
+                maintenanceResult.value.data
+              )
+                ? maintenanceResult.value.data
+                : []
+            );
+          }
+
+
+        } catch (
+          requestError
+        ) {
+
+          setWarning(
+            getErrorMessage(
+              requestError
+            )
+          );
+
+        } finally {
+          setLoading(false);
+        }
+      },
+      []
+    );
+
+
+  // ==========================================
+  // LOAD BY ROLE
+  // ==========================================
+
+  useEffect(() => {
+
+    if (
+      isStudent
+    ) {
+      loadStudentDashboard();
+
+    } else {
+      loadManagementDashboard();
+    }
+
+  }, [
+    isStudent,
+    loadManagementDashboard,
+    loadStudentDashboard,
+  ]);
+
+
+  // ==========================================
+  // MANAGEMENT ANALYTICS
+  // ==========================================
+
+  const managementStats =
+    useMemo(
+      () => {
+
+        const totalBeds =
+          rooms.reduce(
+            (
+              total,
+              room
+            ) =>
+              total +
+              numberValue(
+                room.capacity
+              ),
+            0
+          );
+
+
+        const occupiedBeds =
+          rooms.reduce(
+            (
+              total,
+              room
+            ) =>
+              total +
+              numberValue(
+                room.occupied
+              ),
+            0
+          );
+
+
+        const paidAmount =
+          fees
+            .filter(
+              (
+                fee
+              ) =>
+                String(
+                  fee.status
+                ).toLowerCase() ===
+                "paid"
+            )
+            .reduce(
+              (
+                total,
+                fee
+              ) =>
+                total +
+                numberValue(
+                  fee.amount
+                ),
+              0
+            );
+
+
+        const totalFeeAmount =
+          fees.reduce(
+            (
+              total,
+              fee
+            ) =>
+              total +
+              numberValue(
+                fee.amount
+              ),
+            0
+          );
+
+
+        const pendingMaintenance =
+          maintenance.filter(
+            (
+              item
+            ) =>
+              ![
+                "completed",
+                "closed",
+                "resolved",
+              ].includes(
+                String(
+                  item.status ||
+                  ""
+                ).toLowerCase()
+              )
+          ).length;
+
+
+        const pendingComplaints =
+          complaints.filter(
+            (
+              item
+            ) =>
+              ![
+                "resolved",
+                "closed",
+              ].includes(
+                String(
+                  item.status ||
+                  ""
+                ).toLowerCase()
+              )
+          ).length;
+
+
+        const pendingLeave =
+          leaveRecords.filter(
+            (
+              item
+            ) =>
+              String(
+                item.status ||
+                ""
+              ).toLowerCase() ===
+              "pending"
+          ).length;
+
+
+        const pendingVisitors =
+          visitors.filter(
+            (
+              item
+            ) =>
+              String(
+                item.status ||
+                ""
+              ).toLowerCase() ===
+              "pending"
+          ).length;
+
+
+        return {
+          totalStudents:
+            students.length,
+
+          totalRooms:
+            rooms.length,
+
+          totalBeds,
+
+          occupiedBeds,
+
+          vacantBeds:
+            Math.max(
+              0,
+              totalBeds -
+              occupiedBeds
+            ),
+
+          paidAmount,
+
+          totalFeeAmount,
+
+          pendingAmount:
+            Math.max(
+              0,
+              totalFeeAmount -
+              paidAmount
+            ),
+
+          pendingMaintenance,
+
+          pendingComplaints,
+
+          pendingLeave,
+
+          pendingVisitors,
+
+        };
+      },
+      [
+        students,
+        rooms,
+        fees,
+        maintenance,
+        complaints,
+        leaveRecords,
+        visitors,
+      ]
+    );
+
+
+  // ==========================================
+  // STUDENT ANALYTICS
+  // ==========================================
+
+  const studentStats =
+    useMemo(
+      () => {
+
+        const paid =
+          fees
+            .filter(
+              (
+                fee
+              ) =>
+                String(
+                  fee.status
+                ).toLowerCase() ===
+                "paid"
+            )
+            .reduce(
+              (
+                total,
+                fee
+              ) =>
+                total +
+                numberValue(
+                  fee.amount
+                ),
+              0
+            );
+
+
+        const totalFees =
+          fees.reduce(
+            (
+              total,
+              fee
+            ) =>
+              total +
+              numberValue(
+                fee.amount
+              ),
+            0
+          );
+
+
+        const present =
+          attendance.filter(
+            (
+              item
+            ) =>
+              String(
+                item.status ||
+                ""
+              ).toLowerCase() ===
+              "present"
+          ).length;
+
+
+        const openComplaints =
+          complaints.filter(
+            (
+              item
+            ) =>
+              ![
+                "resolved",
+                "closed",
+              ].includes(
+                String(
+                  item.status ||
+                  ""
+                ).toLowerCase()
+              )
+          ).length;
+
+
+        const pendingLeave =
+          leaveRecords.filter(
+            (
+              item
+            ) =>
+              String(
+                item.status ||
+                ""
+              ).toLowerCase() ===
+              "pending"
+          ).length;
+
+
+        return {
+          paid,
+
+          totalFees,
+
+          pendingFees:
+            Math.max(
+              0,
+              totalFees -
+              paid
+            ),
+
+          attendanceTotal:
+            attendance.length,
+
+          present,
+
+
+          openComplaints,
+
+          pendingLeave,
+        };
+      },
+      [
+        fees,
+        attendance,
+        complaints,
+        leaveRecords,
+      ]
+    );
+
+
+  // ==========================================
+  // ADMISSION DISTRIBUTION
+  // ==========================================
+
+  const admissionChart =
+    useMemo(
+      () => {
+
+        const counts = {
+          Admitted: 0,
+          Approved: 0,
+          Pending: 0,
+          Rejected: 0,
+        };
+
+
+        students.forEach(
+          (
+            student
+          ) => {
+
+            const status =
+              String(
+                student.admission_status ||
+                ""
+              );
+
+
+            if (
+              counts[status] !==
+              undefined
+            ) {
+              counts[status] +=
+                1;
+            }
+          }
+        );
+
+
+        return [
+          {
+            label: "Admitted",
+            value: counts.Admitted,
+          },
+
+          {
+            label: "Approved",
+            value: counts.Approved,
+          },
+
+          {
+            label: "Pending",
+            value: counts.Pending,
+          },
+
+          {
+            label: "Rejected",
+            value: counts.Rejected,
+          },
+        ];
+      },
+      [
+        students,
+      ]
+    );
+
+
+  // ==========================================
+  // QUICK ACTION
+  // ==========================================
+
+  const quickAction =
+    (
+      path
+    ) => {
+      navigate(path);
+    };
 
 
   return (
     <div className="dashboard-layout">
+
       <Sidebar />
 
+
       <main className="dashboard-main">
+
+        {/* HEADER */}
+
         <header className="dashboard-header">
+
           <div>
+
             <span className="dashboard-label">
-              OVERVIEW
+
+              {isAdmin
+                ? "ADMIN OVERVIEW"
+                : isStudent
+                ? "STUDENT OVERVIEW"
+                : "WARDEN OVERVIEW"}
+
             </span>
+
 
             <h1>
               Dashboard
             </h1>
 
+
             <p>
-              Welcome back to HostelHub.
-              Here is your current hostel
-              overview.
+
+              {isStudent
+                ? `Welcome back${
+                    studentProfile?.name
+                      ? `, ${studentProfile.name}`
+                      : ""
+                  }. Here is your hostel overview.`
+                : "Live operational overview of HostelHub."}
+
             </p>
+
           </div>
 
-          <div className="hub-date-card">
+
+          <div className="dashboard-date">
+
             <span>
-              {role.toUpperCase()}
+              ROLE
             </span>
 
             <strong>
-              {formatDateLong()}
+              {role}
             </strong>
+
           </div>
+
         </header>
 
 
-        {role === "Admin" && (
-          <AdminDashboard
-            navigate={
-              navigate
-            }
-          />
+        {warning && (
+
+          <div className="final-dashboard-warning">
+            {warning}
+          </div>
+
         )}
 
 
-        {role === "Warden" && (
-          <WardenDashboard
-            navigate={
-              navigate
-            }
-          />
-        )}
+        {loading ? (
+
+          <div className="final-dashboard-loading">
+
+            <span>
+              ▦
+            </span>
+
+            <strong>
+              Loading dashboard...
+            </strong>
+
+          </div>
+
+        ) : isStudent ? (
+
+          <>
+            {/* ======================================
+                STUDENT DASHBOARD
+            ====================================== */}
+
+            <section className="final-dashboard-stat-grid">
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  quickAction(
+                    "/my-room"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ⌂
+                </span>
+
+                <div>
+                  <small>
+                    My Room
+                  </small>
+
+                  <strong>
+                    {
+                      studentProfile
+                        ?.room_number ||
+                      "Not Allocated"
+                    }
+                  </strong>
+                </div>
+
+              </button>
 
 
-        {role === "Student" && (
-          <StudentDashboard
-            navigate={
-              navigate
-            }
-          />
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  quickAction(
+                    "/my-fees"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ₹
+                </span>
+
+                <div>
+                  <small>
+                    Fee Pending
+                  </small>
+
+                  <strong>
+                    {
+                      formatMoney(
+                        studentStats.pendingFees
+                      )
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+
+
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  quickAction(
+                    "/complaints"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ⚠
+                </span>
+
+                <div>
+                  <small>
+                    Open Complaints
+                  </small>
+
+                  <strong>
+                    {
+                      studentStats.openComplaints
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+            </section>
+
+
+            <section className="final-dashboard-main-grid">
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      ATTENDANCE
+                    </span>
+
+                    <h2>
+                      Attendance Overview
+                    </h2>
+                  </div>
+
+                </div>
+
+
+                <DonutChart
+                  value={
+                    studentStats.present
+                  }
+                  total={
+                    studentStats.attendanceTotal
+                  }
+                  label="Present"
+                  sublabel={
+                    `${studentStats.present} of ${studentStats.attendanceTotal} attendance records`
+                  }
+                />
+
+              </div>
+
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      FEES
+                    </span>
+
+                    <h2>
+                      Fee Progress
+                    </h2>
+                  </div>
+
+                </div>
+
+
+                <ProgressMetric
+                  title="Paid"
+                  value={
+                    studentStats.paid
+                  }
+                  total={
+                    studentStats.totalFees
+                  }
+                  valueLabel={
+                    formatMoney(
+                      studentStats.paid
+                    )
+                  }
+                  helper={
+                    `Total ${formatMoney(
+                      studentStats.totalFees
+                    )}`
+                  }
+                />
+
+
+                <ProgressMetric
+                  title="Pending"
+                  value={
+                    studentStats.pendingFees
+                  }
+                  total={
+                    studentStats.totalFees
+                  }
+                  valueLabel={
+                    formatMoney(
+                      studentStats.pendingFees
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      PENDING ITEMS
+                    </span>
+
+                    <h2>
+                      What Needs Attention
+                    </h2>
+                  </div>
+
+                </div>
+
+
+
+
+                <MetricBar
+                  label="Complaints"
+                  value={
+                    studentStats.openComplaints
+                  }
+                  total={
+                    Math.max(
+                      1,
+                      complaints.length
+                    )
+                  }
+                />
+
+
+                <MetricBar
+                  label="Leave Requests"
+                  value={
+                    studentStats.pendingLeave
+                  }
+                  total={
+                    Math.max(
+                      1,
+                      leaveRecords.length
+                    )
+                  }
+                />
+
+
+                <MetricBar
+                  label="Maintenance"
+                  value={
+                    maintenance.length
+                  }
+                  total={
+                    Math.max(
+                      1,
+                      maintenance.length
+                    )
+                  }
+                />
+
+              </div>
+
+            </section>
+
+
+
+          </>
+
+        ) : (
+
+          <>
+            {/* ======================================
+                ADMIN / WARDEN DASHBOARD
+            ====================================== */}
+
+            <section className="final-dashboard-stat-grid management">
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  navigate(
+                    "/students"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ♙
+                </span>
+
+                <div>
+                  <small>
+                    Students
+                  </small>
+
+                  <strong>
+                    {
+                      managementStats.totalStudents
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  navigate(
+                    "/rooms"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ⌂
+                </span>
+
+                <div>
+                  <small>
+                    Rooms
+                  </small>
+
+                  <strong>
+                    {
+                      managementStats.totalRooms
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  navigate(
+                    "/rooms"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  □
+                </span>
+
+                <div>
+                  <small>
+                    Vacant Beds
+                  </small>
+
+                  <strong>
+                    {
+                      managementStats.vacantBeds
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+
+              <button
+                type="button"
+                className="final-dashboard-stat"
+                onClick={() =>
+                  navigate(
+                    "/fees"
+                  )
+                }
+              >
+
+                <span className="final-stat-icon">
+                  ₹
+                </span>
+
+                <div>
+                  <small>
+                    Fees Collected
+                  </small>
+
+                  <strong>
+                    {
+                      formatMoney(
+                        managementStats.paidAmount
+                      )
+                    }
+                  </strong>
+                </div>
+
+              </button>
+
+            </section>
+
+
+            <section className="final-dashboard-main-grid management">
+
+              {/* OCCUPANCY */}
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      OCCUPANCY
+                    </span>
+
+                    <h2>
+                      Hostel Occupancy
+                    </h2>
+                  </div>
+
+                </div>
+
+
+                <DonutChart
+                  value={
+                    managementStats.occupiedBeds
+                  }
+                  total={
+                    managementStats.totalBeds
+                  }
+                  label="Occupied"
+                  sublabel={
+                    `${managementStats.occupiedBeds} occupied · ${managementStats.vacantBeds} vacant`
+                  }
+                />
+
+              </div>
+
+
+              {/* FEES */}
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      COLLECTION
+                    </span>
+
+                    <h2>
+                      Fee Collection
+                    </h2>
+                  </div>
+
+                </div>
+
+
+                <ProgressMetric
+                  title="Collected"
+                  value={
+                    managementStats.paidAmount
+                  }
+                  total={
+                    managementStats.totalFeeAmount
+                  }
+                  valueLabel={
+                    formatMoney(
+                      managementStats.paidAmount
+                    )
+                  }
+                  helper={
+                    `Total ${formatMoney(
+                      managementStats.totalFeeAmount
+                    )}`
+                  }
+                />
+
+
+                <ProgressMetric
+                  title="Pending"
+                  value={
+                    managementStats.pendingAmount
+                  }
+                  total={
+                    managementStats.totalFeeAmount
+                  }
+                  valueLabel={
+                    formatMoney(
+                      managementStats.pendingAmount
+                    )
+                  }
+                />
+
+              </div>
+
+
+              {/* ADMISSIONS */}
+
+              <div className="overview-card final-chart-card">
+
+                <div className="final-card-heading">
+
+                  <div>
+                    <span>
+                      STUDENTS
+                    </span>
+
+                    <h2>
+                      Admission Status
+                    </h2>
+                  </div>
+
+                </div>
+
+
+                <MiniBarChart
+                  data={
+                    admissionChart
+                  }
+                />
+
+              </div>
+
+            </section>
+
+
+            {/* OPERATIONS */}
+
+            <section className="overview-card final-operation-card">
+
+              <div className="final-card-heading">
+
+                <div>
+
+                  <span>
+                    OPERATIONS
+                  </span>
+
+                  <h2>
+                    Pending Work
+                  </h2>
+
+                  <p>
+                    Items currently requiring staff attention.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div className="final-operation-grid">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/maintenance"
+                    )
+                  }
+                >
+                  <span>
+                    ⚙
+                  </span>
+
+                  <div>
+                    <strong>
+                      {
+                        managementStats.pendingMaintenance
+                      }
+                    </strong>
+
+                    <small>
+                      Maintenance
+                    </small>
+                  </div>
+                </button>
+
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/complaints"
+                    )
+                  }
+                >
+                  <span>
+                    ⚠
+                  </span>
+
+                  <div>
+                    <strong>
+                      {
+                        managementStats.pendingComplaints
+                      }
+                    </strong>
+
+                    <small>
+                      Complaints
+                    </small>
+                  </div>
+                </button>
+
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/leave"
+                    )
+                  }
+                >
+                  <span>
+                    ↪
+                  </span>
+
+                  <div>
+                    <strong>
+                      {
+                        managementStats.pendingLeave
+                      }
+                    </strong>
+
+                    <small>
+                      Leave Requests
+                    </small>
+                  </div>
+                </button>
+
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/visitors"
+                    )
+                  }
+                >
+                  <span>
+                    ♙
+                  </span>
+
+                  <div>
+                    <strong>
+                      {
+                        managementStats.pendingVisitors
+                      }
+                    </strong>
+
+                    <small>
+                      Visitors
+                    </small>
+                  </div>
+                </button>
+
+
+
+              </div>
+
+            </section>
+
+
+            {/* QUICK NAVIGATION */}
+
+            <section className="overview-card final-quick-card">
+
+              <div className="final-card-heading">
+
+                <div>
+
+                  <span>
+                    QUICK ACCESS
+                  </span>
+
+                  <h2>
+                    Management Tools
+                  </h2>
+
+                </div>
+
+              </div>
+
+
+              <div className="final-quick-grid">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/room-allocation"
+                    )
+                  }
+                >
+                  <span>
+                    ▣
+                  </span>
+
+                  Room Allocation
+                </button>
+
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/room-transfer"
+                    )
+                  }
+                >
+                  <span>
+                    ⇄
+                  </span>
+
+                  Room Transfer
+                </button>
+
+
+
+
+                {isAdmin && (
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/audit-logs"
+                      )
+                    }
+                  >
+                    <span>
+                      ≡
+                    </span>
+
+                    Audit Log
+                  </button>
+
+                )}
+
+              </div>
+
+            </section>
+          </>
+
         )}
+
       </main>
+
     </div>
   );
 }

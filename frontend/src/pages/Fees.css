@@ -1,0 +1,529 @@
+/* =====================================================
+   HOSTELHUB — FEES
+===================================================== */
+
+.fees-page .dashboard-main {
+  min-width: 0;
+}
+
+
+/* =====================================================
+   ALERTS
+===================================================== */
+
+.fees-page .fees-error,
+.fees-page .fees-message {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fees-page .fees-error {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.fees-page .fees-message {
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+
+/* =====================================================
+   SUMMARY
+===================================================== */
+
+.fees-page .fees-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.fees-page .fees-summary-card {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 20px rgba(15, 23, 42, 0.045);
+}
+
+.fees-page .fees-summary-card span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fees-page .fees-summary-card strong {
+  color: #0f172a;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+
+/* =====================================================
+   MAIN CARDS
+===================================================== */
+
+.fees-page .overview-card {
+  padding: 24px 26px;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 20px rgba(15, 23, 42, 0.04);
+}
+
+.fees-page .overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.fees-page .overview-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.fees-page .overview-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fees-page .overview-header > strong {
+  color: #475569;
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   FORMS
+===================================================== */
+
+.fees-page .overview-card form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fees-page .overview-card input:not([type="checkbox"]),
+.fees-page .overview-card select,
+.fees-page .overview-card textarea {
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid #d8e0ea;
+  border-radius: 10px;
+  outline: none;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 13px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.fees-page .overview-card textarea {
+  min-height: 90px;
+  height: auto;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.fees-page .overview-card input::placeholder {
+  color: #94a3b8;
+}
+
+.fees-page .overview-card input:not([type="checkbox"]):focus,
+.fees-page .overview-card select:focus,
+.fees-page .overview-card textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10);
+}
+
+.fees-page .overview-card input:disabled,
+.fees-page .overview-card select:disabled {
+  cursor: not-allowed;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+
+/* =====================================================
+   PAYMENT ENABLED SWITCH
+===================================================== */
+
+.fees-page .overview-card label:has(input[type="checkbox"]) {
+  align-self: end;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 43px;
+  padding: 0 13px;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.fees-page .overview-card input[type="checkbox"] {
+  position: relative;
+  width: 42px;
+  height: 23px;
+  margin: 0;
+  appearance: none;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.fees-page .overview-card input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.fees-page .overview-card input[type="checkbox"]:checked {
+  background: #5b4ff5;
+}
+
+.fees-page .overview-card input[type="checkbox"]:checked::after {
+  transform: translateX(19px);
+}
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+.fees-page .primary-button {
+  min-height: 42px;
+  padding: 0 17px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6255f7, #5145e5);
+  color: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  box-shadow: 0 7px 18px rgba(79, 70, 229, 0.18);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.fees-page .primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.23);
+}
+
+.fees-page .primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.fees-page .overview-card button:not(.primary-button) {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fees-page .overview-card button:not(.primary-button):hover {
+  border-color: #c7d2fe;
+  background: #f8faff;
+  color: #4f46e5;
+}
+
+
+/* =====================================================
+   SEARCH / FILTER CONTROLS
+===================================================== */
+
+.fees-page .overview-card > .overview-header + div input,
+.fees-page .overview-card > .overview-header + div select {
+  height: 42px;
+}
+
+.fees-page .overview-card > .overview-header + div button {
+  height: 42px;
+}
+
+
+/* =====================================================
+   TABLES
+===================================================== */
+
+.fees-page .fees-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 4px;
+  border: 1px solid #e7ecf2;
+  border-radius: 12px;
+}
+
+.fees-page .fees-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.fees-page .fees-table thead {
+  background: #f8fafc;
+}
+
+.fees-page .fees-table th {
+  padding: 13px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fees-page .fees-table td {
+  padding: 14px;
+  border-bottom: 1px solid #eef2f7;
+  color: #475569;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.fees-page .fees-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fees-page .fees-table tbody tr:hover {
+  background: #fafbff;
+}
+
+.fees-page .fee-amount {
+  color: #0f172a !important;
+  font-weight: 800;
+}
+
+
+/* common status classes if present */
+
+.fees-page .fee-status,
+.fees-page .status-badge,
+.fees-page .fee-status-badge,
+.fees-page .transaction-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fees-page .paid {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.fees-page .pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.fees-page .failed {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.fees-page .empty-state {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px dashed #dbe3ed;
+  border-radius: 12px;
+  background: #fafcff;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
+
+/* =====================================================
+   PAYMENT SETTINGS
+===================================================== */
+
+.fees-page .overview-card form {
+  min-width: 0;
+}
+
+.fees-page .overview-card form > div {
+  align-items: end;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1100px) {
+  .fees-page .fees-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fees-page .overview-card > .overview-header + div {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .fees-page .overview-card form > div {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .fees-page .fees-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fees-page .overview-card {
+    padding: 18px;
+  }
+
+  .fees-page .overview-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fees-page .overview-card > .overview-header + div,
+  .fees-page .overview-card form > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fees-page .overview-card label:has(input[type="checkbox"]) {
+    align-self: stretch;
+  }
+}
+
+
+/* =====================================================
+   ENHANCED FEE RECORD TABLE
+===================================================== */
+
+.fees-page .fees-records-table {
+  min-width: 1180px;
+}
+
+.fees-page .fee-student-cell,
+.fees-page .fee-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fees-page .fee-student-cell strong,
+.fees-page .fee-type-cell strong {
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.fees-page .fee-student-cell span,
+.fees-page .fee-type-cell span {
+  max-width: 230px;
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.fees-page .fee-room-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 0 10px;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  background: #f5f7ff;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.fees-page .fee-source-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.035em;
+  white-space: nowrap;
+}
+
+.fees-page .fee-source-badge.auto {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.fees-page .fee-source-badge.manual {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.fees-page .fee-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+

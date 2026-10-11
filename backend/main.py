@@ -4,34 +4,55 @@ from fastapi.middleware.cors import (
     CORSMiddleware,
 )
 
+from middleware.audit_middleware import (
+    AuditMiddleware,
+)
+
 from routers import (
-    account_management,
-    ai,
-    allocation,
-    attendance,
-    auth,
-    complaint,
-    fee,
-    food_feedback,
-    food_menu,
-    hostel_profile,
-    leave,
-    meal_confirmation,
-    notice,
-    room,
-    sos_alert,
     student,
+    room,
+    allocation,
+    fee,
+    attendance,
+    complaint,
+    leave,
     visitor,
+    notice,
+    auth,
+    meal_confirmation,
+    food_menu,
+    sos_alert,
+    ai,
+    account_management,
+    food_feedback,
     website_feedback,
+    hostel_profile,
+    notification,
+
+    # Feature 4
+    room_transfer,
+
+    # Feature 5
+    maintenance,
+
+    # Feature 7
+    fee_receipt,
+
+    # Feature 10
+    audit_log,
+
 )
 
 
 app = FastAPI(
-    title=(
+    title=
         "Hostel Management System API"
-    )
 )
 
+
+# ============================================
+# CORS
+# ============================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,6 +69,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ============================================
+# FEATURE 10 — AUDIT LOGGING
+# ============================================
+
+app.add_middleware(
+    AuditMiddleware
+)
+
+
+# ============================================
+# EXISTING ROUTERS
+# ============================================
 
 app.include_router(
     student.router
@@ -98,6 +132,18 @@ app.include_router(
 )
 
 app.include_router(
+    sos_alert.router
+)
+
+app.include_router(
+    ai.router
+)
+
+app.include_router(
+    account_management.router
+)
+
+app.include_router(
     food_feedback.router
 )
 
@@ -110,17 +156,51 @@ app.include_router(
 )
 
 app.include_router(
-    sos_alert.router
+    notification.router
 )
+
+
+# ============================================
+# FEATURE 4 — ROOM TRANSFER
+# ============================================
 
 app.include_router(
-    ai.router
+    room_transfer.router
 )
+
+
+# ============================================
+# FEATURE 5 — MAINTENANCE
+# ============================================
 
 app.include_router(
-    account_management.router
+    maintenance.router
 )
 
+
+# ============================================
+# FEATURE 7 — DIGITAL FEE RECEIPTS
+# ============================================
+
+app.include_router(
+    fee_receipt.router
+)
+
+
+
+
+# ============================================
+# FEATURE 10 — AUDIT LOG
+# ============================================
+
+app.include_router(
+    audit_log.router
+)
+
+
+# ============================================
+# ROOT
+# ============================================
 
 @app.get("/")
 def home():
@@ -130,8 +210,13 @@ def home():
     }
 
 
+# ============================================
+# HEALTH
+# ============================================
+
 @app.get("/health")
 def health():
     return {
-        "status": "OK"
+        "status":
+            "OK"
     }
