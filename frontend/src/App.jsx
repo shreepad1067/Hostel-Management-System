@@ -2,34 +2,54 @@ import React from "react";
 
 import {
   BrowserRouter,
-  Routes,
-  Route,
   Navigate,
+  Route,
+  Routes,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-
 import Students from "./pages/Students";
 import Rooms from "./pages/Rooms";
 import RoomAllocation from "./pages/RoomAllocation";
 import Fees from "./pages/Fees";
-
 import MyRoom from "./pages/MyRoom";
 import MyFees from "./pages/MyFees";
-
 import MealTracking from "./pages/MealTracking";
 import FoodMenu from "./pages/FoodMenu";
+import FoodFeedback from "./pages/FoodFeedback";
+import WebsiteFeedback from "./pages/WebsiteFeedback";
+import AboutHostel from "./pages/AboutHostel";
 import SOS from "./pages/SOS";
 import AIHub from "./pages/AIHub";
 import AccountManagement from "./pages/AccountManagement";
-
 import Attendance from "./pages/Attendance";
 import Complaints from "./pages/Complaints";
 import Leave from "./pages/Leave";
 import Visitors from "./pages/Visitors";
 import Notices from "./pages/Notices";
 
+
+// Feature 1
+import Notifications from "./pages/Notifications";
+
+// Feature 2
+import StudentProfile from "./pages/StudentProfile";
+
+// Feature 4
+import RoomTransfer from "./pages/RoomTransfer";
+
+// Feature 5
+import Maintenance from "./pages/Maintenance";
+
+// Feature 10
+import AuditLogs from "./pages/AuditLogs";
+
+
+
+// ==============================================
+// USER ROLE
+// ==============================================
 
 function getUserRole() {
   try {
@@ -42,20 +62,36 @@ function getUserRole() {
       return null;
     }
 
-    const payload =
-      JSON.parse(
-        atob(
-          token.split(".")[1]
-        )
-      );
+    let payload =
+      token.split(".")[1];
 
-    return payload.role || null;
+    payload =
+      payload
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    while (
+      payload.length % 4
+    ) {
+      payload += "=";
+    }
+
+    return (
+      JSON.parse(
+        atob(payload)
+      ).role ||
+      null
+    );
 
   } catch {
     return null;
   }
 }
 
+
+// ==============================================
+// PROTECTED ROUTE
+// ==============================================
 
 function ProtectedRoute({
   children,
@@ -69,7 +105,11 @@ function ProtectedRoute({
   const role =
     getUserRole();
 
-  if (!token || !role) {
+
+  if (
+    !token ||
+    !role
+  ) {
     return (
       <Navigate
         to="/"
@@ -78,8 +118,11 @@ function ProtectedRoute({
     );
   }
 
+
   if (
-    !allowedRoles.includes(role)
+    !allowedRoles.includes(
+      role
+    )
   ) {
     return (
       <Navigate
@@ -89,9 +132,25 @@ function ProtectedRoute({
     );
   }
 
+
   return children;
 }
 
+
+// ==============================================
+// ROLES
+// ==============================================
+
+const ALL_ROLES = [
+  "Admin",
+  "Warden",
+  "Student",
+];
+
+
+// ==============================================
+// APP
+// ==============================================
 
 function App() {
   return (
@@ -99,9 +158,13 @@ function App() {
 
       <Routes>
 
+        {/* LOGIN */}
+
         <Route
           path="/"
-          element={<Login />}
+          element={
+            <Login />
+          }
         />
 
 
@@ -116,21 +179,71 @@ function App() {
         />
 
 
+        {/* DASHBOARD */}
+
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Dashboard />
             </ProtectedRoute>
           }
         />
 
+
+        {/* FEATURE 1 — NOTIFICATIONS */}
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 2 — STUDENT PROFILE */}
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Student",
+              ]}
+            >
+              <StudentProfile />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 10 — AUDIT LOG */}
+
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Admin",
+              ]}
+            >
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ACCOUNT MANAGEMENT */}
 
         <Route
           path="/accounts"
@@ -145,6 +258,8 @@ function App() {
           }
         />
 
+
+        {/* STUDENTS */}
 
         <Route
           path="/students"
@@ -161,6 +276,8 @@ function App() {
         />
 
 
+        {/* FEATURE 3 — ROOMS */}
+
         <Route
           path="/rooms"
           element={
@@ -175,6 +292,8 @@ function App() {
           }
         />
 
+
+        {/* ROOM ALLOCATION */}
 
         <Route
           path="/room-allocation"
@@ -191,6 +310,40 @@ function App() {
         />
 
 
+        {/* FEATURE 4 — ROOM TRANSFER */}
+
+        <Route
+          path="/room-transfer"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <RoomTransfer />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEATURE 5 — MAINTENANCE */}
+
+        <Route
+          path="/maintenance"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <Maintenance />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FEES */}
+
         <Route
           path="/fees"
           element={
@@ -201,20 +354,6 @@ function App() {
               ]}
             >
               <Fees />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/my-room"
-          element={
-            <ProtectedRoute
-              allowedRoles={[
-                "Student",
-              ]}
-            >
-              <MyRoom />
             </ProtectedRoute>
           }
         />
@@ -234,15 +373,31 @@ function App() {
         />
 
 
+        {/* STUDENT ROOM */}
+
+        <Route
+          path="/my-room"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Student",
+              ]}
+            >
+              <MyRoom />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* MEAL TRACKING */}
+
         <Route
           path="/meal-tracking"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <MealTracking />
             </ProtectedRoute>
@@ -250,14 +405,15 @@ function App() {
         />
 
 
+        {/* FOOD MENU */}
+
         <Route
           path="/food-menu"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <FoodMenu />
             </ProtectedRoute>
@@ -265,15 +421,31 @@ function App() {
         />
 
 
+        {/* FOOD FEEDBACK */}
+
+        <Route
+          path="/food-feedback"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <FoodFeedback />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* SOS */}
+
         <Route
           path="/sos"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <SOS />
             </ProtectedRoute>
@@ -281,15 +453,15 @@ function App() {
         />
 
 
+        {/* AI */}
+
         <Route
           path="/ai"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <AIHub />
             </ProtectedRoute>
@@ -297,15 +469,15 @@ function App() {
         />
 
 
+        {/* ATTENDANCE */}
+
         <Route
           path="/attendance"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Attendance />
             </ProtectedRoute>
@@ -313,15 +485,15 @@ function App() {
         />
 
 
+        {/* COMPLAINTS */}
+
         <Route
           path="/complaints"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Complaints />
             </ProtectedRoute>
@@ -329,15 +501,15 @@ function App() {
         />
 
 
+        {/* LEAVE */}
+
         <Route
           path="/leave"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Leave />
             </ProtectedRoute>
@@ -345,15 +517,15 @@ function App() {
         />
 
 
+        {/* FEATURE 6 — VISITORS */}
+
         <Route
           path="/visitors"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Visitors />
             </ProtectedRoute>
@@ -361,21 +533,56 @@ function App() {
         />
 
 
+        {/* NOTICES */}
+
         <Route
           path="/notices"
           element={
             <ProtectedRoute
-              allowedRoles={[
-                "Admin",
-                "Warden",
-                "Student",
-              ]}
+              allowedRoles={
+                ALL_ROLES
+              }
             >
               <Notices />
             </ProtectedRoute>
           }
         />
 
+
+        {/* WEBSITE FEEDBACK */}
+
+        <Route
+          path="/website-feedback"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Admin",
+                "Student",
+              ]}
+            >
+              <WebsiteFeedback />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ABOUT HOSTEL */}
+
+        <Route
+          path="/about-hostel"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                ALL_ROLES
+              }
+            >
+              <AboutHostel />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* FALLBACK */}
 
         <Route
           path="*"

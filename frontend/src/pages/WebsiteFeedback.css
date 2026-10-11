@@ -1,0 +1,441 @@
+.website-feedback-alert {
+  margin-bottom: 18px;
+
+  padding: 13px 16px;
+
+  border-radius: 10px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.website-feedback-alert.error {
+  border: 1px solid #fecdd3;
+
+  background: #fff1f2;
+
+  color: #be123c;
+}
+
+
+.website-feedback-alert.success {
+  border: 1px solid #bbf7d0;
+
+  background: #ecfdf3;
+
+  color: #067647;
+}
+
+
+/* =====================================================
+   SECTION HEADER
+===================================================== */
+
+.website-feedback-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+
+.website-feedback-section-header h2 {
+  margin: 0;
+
+  color: #334155;
+}
+
+
+.website-feedback-section-header p {
+  margin:
+    6px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+}
+
+
+.website-feedback-count {
+  padding:
+    7px 11px;
+
+  border-radius: 8px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* =====================================================
+   FORM
+===================================================== */
+
+.website-feedback-form {
+  margin-top: 22px;
+}
+
+
+.website-feedback-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 18px;
+}
+
+
+.website-feedback-grid label,
+.website-feedback-message {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  color: #334155;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.website-feedback-grid select,
+.website-feedback-message textarea {
+  width: 100%;
+
+  padding:
+    11px 12px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font: inherit;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.website-feedback-grid select:focus,
+.website-feedback-message textarea:focus {
+  border-color: #818cf8;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      99,
+      102,
+      241,
+      0.1
+    );
+}
+
+
+.website-feedback-message {
+  margin:
+    18px 0;
+}
+
+
+.website-feedback-message textarea {
+  resize: vertical;
+
+  min-height: 120px;
+
+  line-height: 1.6;
+}
+
+
+.website-feedback-message textarea::placeholder {
+  color: #94a3b8;
+}
+
+
+/* =====================================================
+   FEEDBACK LIST
+===================================================== */
+
+.website-feedback-list-card {
+  margin-top: 22px;
+}
+
+
+/* =====================================================
+   EMPTY / LOADING / ERROR STATES
+===================================================== */
+
+.website-feedback-state {
+  min-height: 230px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    30px 20px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+.website-feedback-state-icon {
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 13px;
+
+  border-radius: 14px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+
+.website-feedback-state strong {
+  color: #334155;
+
+  font-size: 15px;
+}
+
+
+.website-feedback-state p {
+  max-width: 430px;
+
+  margin:
+    7px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+
+.website-feedback-state.error-state
+.website-feedback-state-icon {
+  background: #fff1f2;
+
+  color: #e11d48;
+}
+
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+.website-feedback-table-wrap {
+  overflow-x: auto;
+
+  margin-top: 20px;
+}
+
+
+.website-feedback-table {
+  width: 100%;
+
+  min-width: 760px;
+
+  border-collapse: collapse;
+}
+
+
+.website-feedback-table th,
+.website-feedback-table td {
+  padding:
+    14px;
+
+  border-bottom:
+    1px solid #e5e7eb;
+
+  text-align: left;
+
+  vertical-align: middle;
+}
+
+
+.website-feedback-table th {
+  background: #f8fafc;
+
+  color: #64748b;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+.website-feedback-table td {
+  color: #334155;
+
+  font-size: 12px;
+}
+
+
+.website-feedback-student {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+
+.website-feedback-student strong {
+  color: #1e293b;
+
+  font-size: 12px;
+}
+
+
+.website-feedback-student span {
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+
+.website-feedback-category {
+  display: inline-flex;
+
+  padding:
+    5px 8px;
+
+  border-radius: 6px;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.website-feedback-rating {
+  color: #4f46e5;
+
+  font-weight: 700;
+}
+
+
+.website-feedback-message-cell {
+  max-width: 360px;
+
+  line-height: 1.5;
+}
+
+
+.website-feedback-status-select {
+  padding:
+    7px 9px;
+
+  border:
+    1px solid #dbe2ea;
+
+  border-radius: 7px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #334155;
+
+  font: inherit;
+
+  font-size: 11px;
+}
+
+
+.website-feedback-status {
+  display: inline-flex;
+
+  padding:
+    5px 9px;
+
+  border-radius: 20px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.status-new {
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+
+.status-reviewed {
+  background: #fff7ed;
+
+  color: #c2410c;
+}
+
+
+.status-planned {
+  background: #eff6ff;
+
+  color: #2563eb;
+}
+
+
+.status-resolved {
+  background: #ecfdf3;
+
+  color: #15803d;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (
+  max-width: 700px
+) {
+  .website-feedback-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .website-feedback-section-header {
+    flex-direction: column;
+  }
+}

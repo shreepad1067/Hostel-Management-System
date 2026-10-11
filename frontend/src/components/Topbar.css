@@ -1,0 +1,797 @@
+.hostel-topbar {
+  position: fixed;
+  top: 0;
+  left: 260px;
+  right: 0;
+  z-index: 950;
+
+  height: 66px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  padding: 0 34px;
+
+  box-sizing: border-box;
+
+  background: rgba(255, 255, 255, 0.97);
+
+  border-bottom: 1px solid #e5e7eb;
+
+  backdrop-filter: blur(12px);
+}
+
+
+.dashboard-main {
+  padding-top: 96px !important;
+}
+
+
+/* =====================================================
+   GLOBAL SEARCH AREA
+===================================================== */
+
+.hostel-topbar-search-area {
+  position: relative;
+
+  width: min(
+    520px,
+    55vw
+  );
+}
+
+
+.hostel-topbar-search {
+  width: 100%;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 11px;
+
+  background: #f8fafc;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+
+.hostel-topbar-search:focus-within {
+  border-color: #818cf8;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.10);
+}
+
+
+.topbar-search-icon {
+  color: #94a3b8;
+
+  font-size: 20px;
+
+  line-height: 1;
+}
+
+
+.hostel-topbar-search input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #0f172a;
+
+  font-family: inherit;
+  font-size: 13px;
+}
+
+
+.hostel-topbar-search input::placeholder {
+  color: #94a3b8;
+}
+
+
+.hostel-topbar-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+
+.topbar-search-clear {
+  width: 26px;
+  height: 26px;
+
+  min-width: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #94a3b8;
+
+  cursor: pointer;
+
+  font-family: inherit;
+  font-size: 20px;
+
+  line-height: 1;
+}
+
+
+.topbar-search-clear:hover {
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+
+/* =====================================================
+   SEARCH SUGGESTIONS
+===================================================== */
+
+.topbar-search-suggestions {
+  position: absolute;
+
+  top: 50px;
+  left: 0;
+  right: 0;
+
+  overflow: hidden;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 60px
+    rgba(15, 23, 42, 0.16);
+}
+
+
+.topbar-search-suggestions-header {
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 0 16px;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+
+.topbar-search-suggestions-header span {
+  color: #334155;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.04em;
+
+  text-transform: uppercase;
+}
+
+
+.topbar-search-suggestions-header small {
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+
+.topbar-search-results {
+  max-height: 370px;
+
+  overflow-y: auto;
+}
+
+
+.topbar-search-result {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 12px 15px;
+
+  box-sizing: border-box;
+
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  text-align: left;
+
+  transition:
+    background 0.15s ease;
+}
+
+
+.topbar-search-result:hover {
+  background: #f8faff;
+}
+
+
+.topbar-search-result:last-child {
+  border-bottom: none;
+}
+
+
+.topbar-search-result-icon {
+  width: 37px;
+  height: 37px;
+
+  min-width: 37px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 15px;
+}
+
+
+.topbar-search-result-info {
+  min-width: 0;
+
+  flex: 1;
+}
+
+
+.topbar-search-result-info strong {
+  display: block;
+
+  color: #1e293b;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+.topbar-search-result-info small {
+  display: block;
+
+  margin-top: 3px;
+
+  overflow: hidden;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.topbar-search-result-arrow {
+  color: #94a3b8;
+
+  font-size: 16px;
+}
+
+
+.topbar-search-result:hover
+.topbar-search-result-arrow {
+  color: #4f46e5;
+}
+
+
+.topbar-search-empty {
+  min-height: 150px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 22px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+.topbar-search-empty > span {
+  color: #cbd5e1;
+
+  font-size: 26px;
+}
+
+
+.topbar-search-empty strong {
+  margin-top: 7px;
+
+  color: #334155;
+
+  font-size: 12px;
+}
+
+
+.topbar-search-empty p {
+  margin:
+    5px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+
+.topbar-search-tip {
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 16px;
+
+  border-top: 1px solid #f1f5f9;
+
+  background: #fafbff;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+}
+
+
+/* =====================================================
+   RIGHT SIDE
+===================================================== */
+
+.hostel-topbar-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+.topbar-notification-wrapper {
+  position: relative;
+}
+
+
+/* =====================================================
+   NOTIFICATION BUTTON
+===================================================== */
+
+.topbar-icon-button {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  font-size: 17px;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.topbar-icon-button:hover {
+  border-color: #c7d2fe;
+
+  background: #f8faff;
+
+  box-shadow:
+    0 4px 12px
+    rgba(79, 70, 229, 0.08);
+}
+
+
+.topbar-notification-badge {
+  position: absolute;
+
+  top: -5px;
+  right: -5px;
+
+  min-width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 4px;
+
+  box-sizing: border-box;
+
+  border: 2px solid #ffffff;
+
+  border-radius: 20px;
+
+  background: #dc2626;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+/* =====================================================
+   NOTIFICATION PANEL
+===================================================== */
+
+.topbar-notification-panel {
+  position: absolute;
+
+  top: 51px;
+  right: 0;
+
+  width: 390px;
+
+  overflow: hidden;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 22px 50px
+    rgba(15, 23, 42, 0.16);
+}
+
+
+.topbar-panel-header {
+  min-height: 68px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 14px 17px;
+
+  box-sizing: border-box;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+
+.topbar-panel-header strong {
+  display: block;
+
+  color: #0f172a;
+
+  font-size: 14px;
+}
+
+
+.topbar-panel-header span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+
+.topbar-panel-header button {
+  border: none;
+
+  background: transparent;
+
+  color: #4f46e5;
+
+  cursor: pointer;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.topbar-notification-list {
+  max-height: 360px;
+
+  overflow-y: auto;
+}
+
+
+.topbar-notification-item {
+  position: relative;
+
+  width: 100%;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding: 14px 17px;
+
+  box-sizing: border-box;
+
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+
+  background: #ffffff;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font-family: inherit;
+}
+
+
+.topbar-notification-item.unread {
+  background: #f8faff;
+}
+
+
+.topbar-notification-item:hover {
+  background: #f8fafc;
+}
+
+
+.topbar-notification-icon {
+  width: 37px;
+  height: 37px;
+
+  min-width: 37px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #eef2ff;
+
+  font-size: 15px;
+}
+
+
+.topbar-notification-content {
+  min-width: 0;
+
+  flex: 1;
+}
+
+
+.topbar-notification-content strong {
+  display: block;
+
+  color: #1e293b;
+
+  font-size: 12px;
+}
+
+
+.topbar-notification-content small {
+  display: -webkit-box;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: #64748b;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+
+.topbar-notification-content em {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+
+  font-style: normal;
+}
+
+
+.topbar-unread-dot {
+  width: 7px;
+  height: 7px;
+
+  min-width: 7px;
+
+  margin-top: 6px;
+
+  border-radius: 50%;
+
+  background: #4f46e5;
+}
+
+
+.topbar-notification-empty {
+  min-height: 190px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  text-align: center;
+
+  color: #64748b;
+}
+
+
+.topbar-notification-empty > span {
+  font-size: 30px;
+}
+
+
+.topbar-notification-empty strong {
+  margin-top: 10px;
+
+  color: #334155;
+
+  font-size: 13px;
+}
+
+
+.topbar-notification-empty p {
+  margin:
+    5px 0 0;
+
+  font-size: 10px;
+}
+
+
+.topbar-view-all {
+  width: 100%;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  border: none;
+
+  background: #ffffff;
+
+  color: #4f46e5;
+
+  cursor: pointer;
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.topbar-view-all:hover {
+  background: #f8fafc;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (
+  max-width: 900px
+) {
+  .hostel-topbar-search-area {
+    width: min(
+      420px,
+      55vw
+    );
+  }
+}
+
+
+@media (
+  max-width: 768px
+) {
+  .hostel-topbar {
+    left: 220px;
+
+    gap: 12px;
+
+    padding:
+      0 16px;
+  }
+
+
+  .hostel-topbar-search-area {
+    width: calc(
+      100% - 58px
+    );
+  }
+
+
+  .hostel-topbar-search {
+    height: 40px;
+  }
+}
+
+
+@media (
+  max-width: 620px
+) {
+  .topbar-notification-panel {
+    width: 330px;
+
+    right: -4px;
+  }
+
+
+  .topbar-search-suggestions {
+    min-width: 310px;
+  }
+}

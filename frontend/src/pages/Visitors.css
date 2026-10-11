@@ -1,0 +1,1766 @@
+/* =====================================================
+   FEATURE 6 — QR VISITOR PASSES
+===================================================== */
+
+.visitor-alert {
+  margin-bottom: 18px;
+  padding: 13px 16px;
+
+  border-radius: 10px;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+.visitor-alert.error {
+  border: 1px solid #fecdd3;
+
+  background: #fff1f2;
+
+  color: #be123c;
+}
+
+
+.visitor-alert.success {
+  border: 1px solid #bbf7d0;
+
+  background: #ecfdf3;
+
+  color: #15803d;
+}
+
+
+/* =====================================================
+   SUMMARY
+===================================================== */
+
+.visitor-summary-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 14px;
+
+  margin-bottom: 22px;
+}
+
+
+.visitor-summary-card {
+  min-height: 92px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 16px;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 3px 14px
+    rgba(
+      15,
+      23,
+      42,
+      0.04
+    );
+}
+
+
+.visitor-summary-icon {
+  width: 42px;
+  height: 42px;
+
+  min-width: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 17px;
+  font-weight: 800;
+}
+
+
+.visitor-summary-icon.pending {
+  background: #fff7ed;
+
+  color: #c2410c;
+}
+
+
+.visitor-summary-icon.approved {
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+
+.visitor-summary-icon.checked-in {
+  background: #eff6ff;
+
+  color: #2563eb;
+}
+
+
+.visitor-summary-icon.completed {
+  background: #ecfdf3;
+
+  color: #15803d;
+}
+
+
+.visitor-summary-card span {
+  display: block;
+
+  color: #64748b;
+
+  font-size: 9px;
+  font-weight: 600;
+}
+
+
+.visitor-summary-card strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #0f172a;
+
+  font-size: 22px;
+}
+
+
+/* =====================================================
+   COMMON HEADER
+===================================================== */
+
+.visitor-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+}
+
+
+.visitor-eyebrow {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #6366f1;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.08em;
+}
+
+
+.visitor-section-header h2,
+.visitor-review-header h2 {
+  margin: 0;
+
+  color: #1e293b;
+
+  font-size: 20px;
+}
+
+
+.visitor-section-header p,
+.visitor-review-header p {
+  margin: 5px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+
+  line-height: 1.55;
+}
+
+
+/* =====================================================
+   SCANNER
+===================================================== */
+
+.visitor-scanner-card {
+  margin-bottom: 22px;
+
+  border-top: 3px solid #6366f1;
+}
+
+
+.visitor-stop-scanner {
+  min-height: 38px;
+
+  padding: 0 14px;
+
+  border: 1px solid #fecdd3;
+
+  border-radius: 8px;
+
+  background: #fff1f2;
+
+  color: #be123c;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.visitor-camera-wrap {
+  max-width: 500px;
+
+  margin:
+    20px auto 0;
+
+  padding: 14px;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 12px;
+
+  background: #f8fafc;
+}
+
+
+.visitor-qr-reader {
+  width: 100%;
+
+  overflow: hidden;
+
+  border-radius: 10px;
+
+  background: #111827;
+}
+
+
+.visitor-camera-wrap > p {
+  margin:
+    10px 0 0;
+
+  color: #64748b;
+
+  font-size: 9px;
+
+  text-align: center;
+}
+
+
+.visitor-manual-scan {
+  display: flex;
+  align-items: flex-end;
+
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+
+.visitor-manual-scan > div {
+  flex: 1;
+}
+
+
+.visitor-manual-scan label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #334155;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.visitor-manual-scan input {
+  width: 100%;
+  min-height: 40px;
+
+  padding:
+    0 11px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  color: #334155;
+
+  font: inherit;
+  font-size: 10px;
+}
+
+
+.visitor-manual-scan input:focus {
+  border-color: #818cf8;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      99,
+      102,
+      241,
+      0.08
+    );
+}
+
+
+.visitor-manual-scan button {
+  min-height: 40px;
+
+  padding: 0 14px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #4f46e5;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.visitor-manual-scan button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   SCAN RESULT
+===================================================== */
+
+.visitor-scan-result {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  margin-top: 16px;
+
+  padding: 14px;
+
+  border-radius: 10px;
+}
+
+
+.visitor-scan-result.check-in {
+  border: 1px solid #bfdbfe;
+
+  background: #eff6ff;
+}
+
+
+.visitor-scan-result.check-out {
+  border: 1px solid #bbf7d0;
+
+  background: #ecfdf3;
+}
+
+
+.visitor-scan-result-icon {
+  width: 44px;
+  height: 44px;
+
+  min-width: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #ffffff;
+
+  font-size: 19px;
+}
+
+
+.visitor-scan-result > div:nth-child(2) {
+  flex: 1;
+}
+
+
+.visitor-scan-result span {
+  display: block;
+
+  color: #64748b;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+
+.visitor-scan-result strong {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #1e293b;
+
+  font-size: 12px;
+}
+
+
+.visitor-scan-result p {
+  margin:
+    3px 0 0;
+
+  color: #475569;
+
+  font-size: 9px;
+}
+
+
+.visitor-scan-result-meta {
+  min-width: 130px;
+
+  padding-left: 13px;
+
+  border-left:
+    1px solid
+    rgba(
+      100,
+      116,
+      139,
+      0.18
+    );
+}
+
+
+/* =====================================================
+   CREATE FORM
+===================================================== */
+
+.visitor-create-card {
+  margin-bottom: 22px;
+}
+
+
+.visitor-form {
+  margin-top: 20px;
+}
+
+
+.visitor-form-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 15px;
+}
+
+
+.visitor-form-grid label,
+.visitor-review-note {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  color: #334155;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.visitor-form-grid input,
+.visitor-form-grid select,
+.visitor-form-grid textarea,
+.visitor-review-note textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #334155;
+
+  font: inherit;
+}
+
+
+.visitor-form-grid input,
+.visitor-form-grid select {
+  min-height: 41px;
+
+  padding: 0 11px;
+}
+
+
+.visitor-form-grid textarea,
+.visitor-review-note textarea {
+  padding: 11px 12px;
+
+  resize: vertical;
+
+  line-height: 1.55;
+}
+
+
+.visitor-form-grid input:focus,
+.visitor-form-grid select:focus,
+.visitor-form-grid textarea:focus,
+.visitor-review-note textarea:focus {
+  border-color: #818cf8;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      99,
+      102,
+      241,
+      0.08
+    );
+}
+
+
+.visitor-purpose-field {
+  grid-column:
+    span 2;
+}
+
+
+.visitor-remarks-field {
+  grid-column:
+    1 / -1;
+}
+
+
+.visitor-remarks-field > span,
+.visitor-review-note > span {
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  color: #94a3b8;
+
+  font-size: 8px;
+  font-weight: 500;
+}
+
+
+.visitor-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-top: 17px;
+
+  padding-top: 16px;
+
+  border-top:
+    1px solid #eef2f7;
+}
+
+
+.visitor-form-footer > p {
+  max-width: 560px;
+
+  margin: 0;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+
+  line-height: 1.55;
+}
+
+
+.visitor-form-footer > div {
+  display: flex;
+
+  gap: 8px;
+}
+
+
+.visitor-secondary-button {
+  min-height: 38px;
+
+  padding: 0 13px;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #64748b;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   FILTER
+===================================================== */
+
+.visitor-result-count {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 29px;
+
+  padding: 0 10px;
+
+  border-radius: 20px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+.visitor-filter-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(
+      260px,
+      1fr
+    )
+    170px
+    auto;
+
+  gap: 10px;
+
+  margin-top: 18px;
+
+  padding-bottom: 17px;
+
+  border-bottom:
+    1px solid #eef2f7;
+}
+
+
+.visitor-search {
+  min-height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 11px;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  box-sizing: border-box;
+}
+
+
+.visitor-search span {
+  color: #94a3b8;
+
+  font-size: 16px;
+}
+
+
+.visitor-search input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #334155;
+
+  font: inherit;
+  font-size: 10px;
+}
+
+
+.visitor-filter-row > select {
+  padding:
+    0 10px;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #475569;
+
+  font: inherit;
+
+  font-size: 9px;
+}
+
+
+.visitor-filter-row > button {
+  padding:
+    0 13px;
+
+  border: 1px solid #dbe2ea;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #64748b;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   EMPTY
+===================================================== */
+
+.visitor-empty {
+  min-height: 240px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+
+.visitor-empty > span {
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 21px;
+}
+
+
+.visitor-empty strong {
+  margin-top: 11px;
+
+  color: #334155;
+
+  font-size: 13px;
+}
+
+
+.visitor-empty p {
+  max-width: 440px;
+
+  margin: 5px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+
+  line-height: 1.55;
+}
+
+
+/* =====================================================
+   VISITOR LIST
+===================================================== */
+
+.visitor-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  margin-top: 18px;
+}
+
+
+.visitor-record {
+  padding: 17px;
+
+  border: 1px solid #e5eaf0;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.visitor-record:hover {
+  border-color: #c7d2fe;
+
+  box-shadow:
+    0 7px 20px
+    rgba(
+      15,
+      23,
+      42,
+      0.05
+    );
+}
+
+
+.visitor-record-header {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+.visitor-avatar {
+  width: 43px;
+  height: 43px;
+
+  min-width: 43px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+
+.visitor-record-main {
+  min-width: 0;
+
+  flex: 1;
+}
+
+
+.visitor-record-id {
+  display: block;
+
+  color: #6366f1;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+}
+
+
+.visitor-record-main h3 {
+  margin:
+    2px 0 0;
+
+  color: #1e293b;
+
+  font-size: 13px;
+}
+
+
+.visitor-record-main p {
+  margin:
+    3px 0 0;
+
+  color: #94a3b8;
+
+  font-size: 9px;
+}
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+.visitor-status {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 26px;
+
+  padding: 0 9px;
+
+  border-radius: 20px;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+
+.visitor-status.status-pending {
+  background: #fff7ed;
+
+  color: #c2410c;
+}
+
+
+.visitor-status.status-approved,
+.visitor-status.status-expected {
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+
+.visitor-status.status-checked-in {
+  background: #eff6ff;
+
+  color: #2563eb;
+}
+
+
+.visitor-status.status-completed {
+  background: #ecfdf3;
+
+  color: #15803d;
+}
+
+
+.visitor-status.status-rejected {
+  background: #fff1f2;
+
+  color: #be123c;
+}
+
+
+.visitor-status.status-cancelled {
+  background: #f1f5f9;
+
+  color: #64748b;
+}
+
+
+/* =====================================================
+   VISITOR DETAILS
+===================================================== */
+
+.visitor-record-details {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+
+.visitor-record-details > div {
+  min-width: 0;
+
+  padding: 9px;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+}
+
+
+.visitor-record-details span {
+  display: block;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+  font-weight: 800;
+}
+
+
+.visitor-record-details strong {
+  display: block;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: #334155;
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.visitor-record-details small {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+}
+
+
+.visitor-remarks {
+  margin-top: 10px;
+
+  padding: 10px;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+}
+
+
+.visitor-remarks span {
+  display: block;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+  font-weight: 800;
+}
+
+
+.visitor-remarks p {
+  margin: 4px 0 0;
+
+  color: #475569;
+
+  font-size: 9px;
+
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   QR PASS
+===================================================== */
+
+.visitor-pass-section {
+  margin-top: 14px;
+}
+
+
+.visitor-show-pass {
+  min-height: 35px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0 12px;
+
+  border: 1px solid #c7d2fe;
+
+  border-radius: 8px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.visitor-qr-pass {
+  max-width: 660px;
+
+  margin-top: 13px;
+
+  overflow: hidden;
+
+  border: 1px solid #c7d2fe;
+
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 12px 30px
+    rgba(
+      79,
+      70,
+      229,
+      0.09
+    );
+}
+
+
+.visitor-pass-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 16px 18px;
+
+  background: #f7f7ff;
+
+  border-bottom:
+    1px solid #e0e7ff;
+}
+
+
+.visitor-pass-top > div > span {
+  display: block;
+
+  color: #6366f1;
+
+  font-size: 7px;
+  font-weight: 900;
+
+  letter-spacing: 0.1em;
+}
+
+
+.visitor-pass-top > div > strong {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #1e293b;
+
+  font-size: 16px;
+}
+
+
+.visitor-pass-status {
+  padding:
+    6px 9px;
+
+  border-radius: 20px;
+
+  background: #ecfdf3;
+
+  color: #15803d;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+
+.visitor-pass-status.inside {
+  background: #eff6ff;
+
+  color: #2563eb;
+}
+
+
+.visitor-pass-body {
+  display: grid;
+
+  grid-template-columns:
+    210px
+    1fr;
+
+  gap: 20px;
+
+  padding: 20px;
+}
+
+
+.visitor-pass-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 12px;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+}
+
+
+.visitor-pass-info {
+  display: grid;
+
+  grid-template-columns:
+    110px
+    1fr;
+
+  align-content: center;
+
+  gap:
+    8px
+    12px;
+}
+
+
+.visitor-pass-info span {
+  color: #94a3b8;
+
+  font-size: 7px;
+  font-weight: 800;
+}
+
+
+.visitor-pass-info strong {
+  color: #334155;
+
+  font-size: 10px;
+}
+
+
+.visitor-pass-footer {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding:
+    10px 18px;
+
+  border-top:
+    1px solid #eef2f7;
+
+  background: #fafafa;
+}
+
+
+.visitor-pass-footer span {
+  color: #4f46e5;
+}
+
+
+.visitor-pass-footer p {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 8px;
+
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   RECORD ACTIONS
+===================================================== */
+
+.visitor-record-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  margin-top: 13px;
+
+  padding-top: 12px;
+
+  border-top:
+    1px solid #eef2f7;
+}
+
+
+.visitor-record-actions button {
+  min-height: 34px;
+
+  padding: 0 11px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.visitor-review-button {
+  border: 1px solid #c7d2fe;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+}
+
+
+.visitor-edit-button {
+  border: 1px solid #dbe2ea;
+
+  background: #ffffff;
+
+  color: #475569;
+}
+
+
+.visitor-delete-button,
+.visitor-cancel-button,
+.visitor-reject-button {
+  border: 1px solid #fecdd3;
+
+  background: #fff1f2;
+
+  color: #be123c;
+}
+
+
+/* =====================================================
+   REVIEW PANEL
+===================================================== */
+
+.visitor-review-card {
+  margin-top: 22px;
+
+  border-top:
+    3px solid #6366f1;
+}
+
+
+.visitor-review-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+
+.visitor-review-header > button {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #64748b;
+
+  cursor: pointer;
+
+  font-size: 19px;
+}
+
+
+.visitor-review-details {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+
+.visitor-review-details > div {
+  min-width: 0;
+
+  padding: 11px;
+
+  border-radius: 8px;
+
+  background: #f8fafc;
+}
+
+
+.visitor-review-details span {
+  display: block;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+  font-weight: 800;
+}
+
+
+.visitor-review-details strong {
+  display: block;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: #334155;
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+.visitor-review-note {
+  margin-top: 18px;
+}
+
+
+.visitor-review-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  margin-top: 17px;
+
+  padding-top: 15px;
+
+  border-top:
+    1px solid #eef2f7;
+}
+
+
+.visitor-reject-button {
+  min-height: 38px;
+
+  padding: 0 14px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (
+  max-width: 1180px
+) {
+  .visitor-summary-grid {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .visitor-record-details {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+}
+
+
+@media (
+  max-width: 900px
+) {
+  .visitor-form-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .visitor-purpose-field,
+  .visitor-remarks-field {
+    grid-column:
+      1 / -1;
+  }
+
+
+  .visitor-review-details {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .visitor-pass-body {
+    grid-template-columns:
+      190px
+      1fr;
+  }
+}
+
+
+@media (
+  max-width: 700px
+) {
+  .visitor-summary-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .visitor-section-header {
+    flex-direction: column;
+  }
+
+
+  .visitor-form-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .visitor-purpose-field,
+  .visitor-remarks-field {
+    grid-column: auto;
+  }
+
+
+  .visitor-filter-row {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .visitor-manual-scan {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+
+  .visitor-manual-scan button {
+    width: 100%;
+  }
+
+
+  .visitor-record-details {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+
+  .visitor-pass-body {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .visitor-pass-info {
+    grid-template-columns:
+      100px
+      1fr;
+  }
+
+
+  .visitor-form-footer {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+
+  .visitor-form-footer > div {
+    width: 100%;
+  }
+
+
+  .visitor-form-footer button {
+    flex: 1;
+  }
+
+
+  .visitor-scan-result {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+
+  .visitor-scan-result-meta {
+    width: 100%;
+
+    padding:
+      10px 0 0;
+
+    border-left: none;
+
+    border-top:
+      1px solid
+      rgba(
+        100,
+        116,
+        139,
+        0.18
+      );
+  }
+}
+
+
+@media (
+  max-width: 520px
+) {
+  .visitor-summary-grid,
+  .visitor-record-details,
+  .visitor-review-details {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .visitor-record-header {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+
+  .visitor-status {
+    margin-left: 55px;
+  }
+
+
+  .visitor-record-actions {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+
+  .visitor-record-actions button {
+    width: 100%;
+  }
+
+
+  .visitor-review-actions {
+    flex-direction:
+      column-reverse;
+  }
+
+
+  .visitor-review-actions button {
+    width: 100%;
+  }
+}

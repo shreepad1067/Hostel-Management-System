@@ -1,86 +1,202 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import IntegrityError
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+)
+
+from sqlalchemy.exc import (
+    IntegrityError,
+)
+
 from sqlalchemy.orm import Session
 
 from database import get_db
+
+from dependencies import (
+    require_roles,
+)
+
+from models.allocation import RoomAllocation
 from models.student import Student
 from models.user import User
-from schemas.student import StudentCreate, StudentUpdate, StudentResponse
-from dependencies import require_roles
+
+from schemas.student import (
+    StudentCreate,
+    StudentResponse,
+    StudentSelfUpdate,
+    StudentUpdate,
+)
 
 
 router = APIRouter(
     prefix="/students",
-    tags=["Students"]
+    tags=["Students"],
 )
 
 
+def get_linked_student(
+    db: Session,
+    current_user: User,
+) -> Student:
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.user_id
+            == current_user.id
+        )
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Student profile is not "
+                "linked to this user"
+            ),
+        )
+
+    return student
+
+
 # CREATE STUDENT / ADMISSION
-@router.post("/", response_model=StudentResponse)
+@router.post(
+    "/",
+    response_model=StudentResponse,
+)
 def create_student(
     student: StudentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin"))
-):
-    if student.room_number:
-        raise HTTPException(status_code=400, detail="Use room allocation after admission to assign a room")
 
-    existing_student = db.query(Student).filter(
-        Student.email == student.email
-    ).first()
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles("Admin")
+    ),
+):
+
+    if student.room_number:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Use room allocation after "
+                "admission to assign a room"
+            ),
+        )
+
+    existing_student = (
+        db.query(Student)
+        .filter(
+            Student.email
+            == student.email
+        )
+        .first()
+    )
 
     if existing_student:
         raise HTTPException(
             status_code=400,
-            detail="Email already exists"
+            detail="Email already exists",
         )
 
     if student.user_id is not None:
-        user = db.query(User).filter(
-            User.id == student.user_id
-        ).first()
+        user = (
+            db.query(User)
+            .filter(
+                User.id
+                == student.user_id
+            )
+            .first()
+        )
 
         if not user:
             raise HTTPException(
                 status_code=404,
-                detail="User not found"
+                detail="User not found",
             )
 
         if user.role != "Student":
             raise HTTPException(
                 status_code=400,
-                detail="Only Student users can be linked to a student record"
+                detail=(
+                    "Only Student users can "
+                    "be linked to a student record"
+                ),
             )
 
-        existing_link = db.query(Student).filter(
-            Student.user_id == student.user_id
-        ).first()
+        existing_link = (
+            db.query(Student)
+            .filter(
+                Student.user_id
+                == student.user_id
+            )
+            .first()
+        )
 
         if existing_link:
             raise HTTPException(
                 status_code=400,
-                detail="This user is already linked to a student"
+                detail=(
+                    "This user is already linked "
+                    "to a student"
+                ),
             )
 
     new_student = Student(
         student_code=None,
+
         name=student.name,
         email=student.email,
         phone=student.phone,
+
         course=student.course,
+        department=student.department,
+
         year=student.year,
-        room_number=student.room_number,
-        guardian_phone=student.guardian_phone,
-        parent_name=student.parent_name,
-        parent_email=student.parent_email,
-        emergency_contact=student.emergency_contact,
+        semester=student.semester,
+
+        profile_photo_url=(
+            student.profile_photo_url
+        ),
+
+        room_number=None,
+
+        guardian_phone=(
+            student.guardian_phone
+        ),
+
+        parent_name=(
+            student.parent_name
+        ),
+
+        parent_email=(
+            student.parent_email
+        ),
+
+        emergency_contact=(
+            student.emergency_contact
+        ),
+
         address=student.address,
-        room_preference=student.room_preference,
-        admission_status=student.admission_status,
-        admission_date=student.admission_date or date.today(),
-        user_id=student.user_id
+
+        room_preference=(
+            student.room_preference
+        ),
+
+        admission_status=(
+            student.admission_status
+        ),
+
+        admission_date=(
+            student.admission_date
+            or date.today()
+        ),
+
+        user_id=student.user_id,
     )
 
     db.add(new_student)
@@ -88,10 +204,13 @@ def create_student(
     try:
         db.flush()
 
-        current_year = date.today().year
+        current_year = (
+            date.today().year
+        )
 
         new_student.student_code = (
-            f"HMS{current_year}{new_student.id:05d}"
+            f"HMS{current_year}"
+            f"{new_student.id:05d}"
         )
 
         db.commit()
@@ -102,151 +221,104 @@ def create_student(
 
         raise HTTPException(
             status_code=400,
-            detail="Could not create student"
+            detail=(
+                "Could not create student"
+            ),
         )
 
     return new_student
 
 
-# GET ALL STUDENTS
-@router.get("/", response_model=list[StudentResponse])
-def get_students(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_roles("Admin", "Warden")
-    )
-):
-    return db.query(Student).all()
-
-
-# LOOKUP STUDENT USING HOSTELHUB STUDENT ID
+# CURRENT STUDENT PROFILE
+# IMPORTANT: keep before /{student_id}
 @router.get(
-    "/by-code/{student_code}",
-    response_model=StudentResponse
+    "/profile/me",
+    response_model=StudentResponse,
 )
-def get_student_by_code(
-    student_code: str,
-    db: Session = Depends(get_db),
+def get_my_profile(
+    db: Session = Depends(
+        get_db
+    ),
+
     current_user: User = Depends(
-        require_roles("Admin", "Warden")
-    )
+        require_roles("Student")
+    ),
 ):
-    normalized_code = student_code.strip().upper()
-
-    student = db.query(Student).filter(
-        Student.student_code == normalized_code
-    ).first()
-
-    if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="Student not found"
-        )
-
-    return student
+    return get_linked_student(
+        db,
+        current_user,
+    )
 
 
-# GET STUDENT BY DATABASE ID
-@router.get("/{student_id}", response_model=StudentResponse)
-def get_student(
-    student_id: int,
-    db: Session = Depends(get_db),
+# CURRENT STUDENT EDITABLE PROFILE
+@router.put(
+    "/profile/me",
+    response_model=StudentResponse,
+)
+def update_my_profile(
+    payload: StudentSelfUpdate,
+
+    db: Session = Depends(
+        get_db
+    ),
+
     current_user: User = Depends(
-        require_roles("Admin", "Warden")
-    )
+        require_roles("Student")
+    ),
 ):
-    student = db.query(Student).filter(
-        Student.id == student_id
-    ).first()
 
-    if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="Student not found"
-        )
-
-    return student
-
-
-# UPDATE STUDENT
-@router.put("/{student_id}", response_model=StudentResponse)
-def update_student(
-    student_id: int,
-    student_data: StudentUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_roles("Admin", "Warden")
+    student = get_linked_student(
+        db,
+        current_user,
     )
-):
-    student = db.query(Student).filter(
-        Student.id == student_id
-    ).with_for_update().first()
 
-    if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="Student not found"
-        )
+    student.phone = (
+        payload.phone.strip()
+    )
 
-    existing_email = db.query(Student).filter(
-        Student.email == student_data.email,
-        Student.id != student_id
-    ).first()
+    student.profile_photo_url = (
+        payload.profile_photo_url.strip()
+        if payload.profile_photo_url
+        else None
+    )
 
-    if existing_email:
+    student.guardian_phone = (
+        payload.guardian_phone.strip()
+        if payload.guardian_phone
+        else None
+    )
+
+    student.parent_name = (
+        payload.parent_name.strip()
+        if payload.parent_name
+        else None
+    )
+
+    student.parent_email = (
+        payload.parent_email.strip()
+        if payload.parent_email
+        else None
+    )
+
+    student.emergency_contact = (
+        payload.emergency_contact.strip()
+        if payload.emergency_contact
+        else None
+    )
+
+    student.address = (
+        payload.address.strip()
+        if payload.address
+        else None
+    )
+
+    if not student.phone:
         raise HTTPException(
             status_code=400,
-            detail="Email already exists"
+            detail=(
+                "Phone number is required"
+            ),
         )
-
-    if student_data.user_id is not None:
-        user = db.query(User).filter(
-            User.id == student_data.user_id
-        ).first()
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found"
-            )
-
-        if user.role != "Student":
-            raise HTTPException(
-                status_code=400,
-                detail="Only Student users can be linked to a student record"
-            )
-
-        existing_link = db.query(Student).filter(
-            Student.user_id == student_data.user_id,
-            Student.id != student_id
-        ).first()
-
-        if existing_link:
-            raise HTTPException(
-                status_code=400,
-                detail="This user is already linked to another student"
-            )
-
-    if student_data.user_id != student.user_id:
-        raise HTTPException(status_code=400, detail="Login links cannot be changed here; use the student account workflow")
-    if student_data.room_number != student.room_number:
-        raise HTTPException(status_code=400, detail="Use room allocation to change the assigned room")
-
-    student.name = student_data.name
-    student.email = student_data.email
-    student.phone = student_data.phone
-    student.course = student_data.course
-    student.year = student_data.year
-    student.room_number = student_data.room_number
-    student.guardian_phone = student_data.guardian_phone
-    student.parent_name = student_data.parent_name
-    student.parent_email = student_data.parent_email
-    student.emergency_contact = student_data.emergency_contact
-    student.address = student_data.address
-    student.room_preference = student_data.room_preference
-    student.admission_status = student_data.admission_status
-    student.admission_date = student_data.admission_date
-    student.user_id = student_data.user_id
 
     try:
         db.commit()
@@ -257,32 +329,402 @@ def update_student(
 
         raise HTTPException(
             status_code=400,
-            detail="Could not update student"
+            detail=(
+                "Could not update profile"
+            ),
+        )
+
+    return student
+
+
+# GET ALL STUDENTS
+@router.get(
+    "/",
+    response_model=list[
+        StudentResponse
+    ],
+)
+def get_students(
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles(
+            "Admin",
+            "Warden",
+        )
+    ),
+):
+
+    return (
+        db.query(Student)
+        .order_by(
+            Student.id.desc()
+        )
+        .all()
+    )
+
+
+# LOOKUP USING HOSTELHUB STUDENT ID
+@router.get(
+    "/by-code/{student_code}",
+    response_model=StudentResponse,
+)
+def get_student_by_code(
+    student_code: str,
+
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles(
+            "Admin",
+            "Warden",
+        )
+    ),
+):
+
+    normalized_code = (
+        student_code
+        .strip()
+        .upper()
+    )
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.student_code
+            == normalized_code
+        )
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found",
+        )
+
+    return student
+
+
+# GET STUDENT BY DATABASE ID
+@router.get(
+    "/{student_id}",
+    response_model=StudentResponse,
+)
+def get_student(
+    student_id: int,
+
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles(
+            "Admin",
+            "Warden",
+        )
+    ),
+):
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.id
+            == student_id
+        )
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found",
+        )
+
+    return student
+
+
+# UPDATE STUDENT
+@router.put(
+    "/{student_id}",
+    response_model=StudentResponse,
+)
+def update_student(
+    student_id: int,
+    student_data: StudentUpdate,
+
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles(
+            "Admin",
+            "Warden",
+        )
+    ),
+):
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.id
+            == student_id
+        )
+        .with_for_update()
+        .first()
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found",
+        )
+
+    existing_email = (
+        db.query(Student)
+        .filter(
+            Student.email
+            == student_data.email,
+
+            Student.id
+            != student_id,
+        )
+        .first()
+    )
+
+    if existing_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists",
+        )
+
+    if (
+        student_data.user_id
+        is not None
+    ):
+        user = (
+            db.query(User)
+            .filter(
+                User.id
+                == student_data.user_id
+            )
+            .first()
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found",
+            )
+
+        if user.role != "Student":
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Only Student users can "
+                    "be linked to a student record"
+                ),
+            )
+
+        existing_link = (
+            db.query(Student)
+            .filter(
+                Student.user_id
+                == student_data.user_id,
+
+                Student.id
+                != student_id,
+            )
+            .first()
+        )
+
+        if existing_link:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "This user is already linked "
+                    "to another student"
+                ),
+            )
+
+    if (
+        student_data.user_id
+        != student.user_id
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Login links cannot be changed "
+                "here; use the student account "
+                "workflow"
+            ),
+        )
+
+    if (
+        student_data.room_number
+        != student.room_number
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Use room allocation to change "
+                "the assigned room"
+            ),
+        )
+
+    student.name = (
+        student_data.name
+    )
+
+    student.email = (
+        student_data.email
+    )
+
+    student.phone = (
+        student_data.phone
+    )
+
+    student.course = (
+        student_data.course
+    )
+
+    student.department = (
+        student_data.department
+    )
+
+    student.year = (
+        student_data.year
+    )
+
+    student.semester = (
+        student_data.semester
+    )
+
+    student.profile_photo_url = (
+        student_data
+        .profile_photo_url
+    )
+
+    student.guardian_phone = (
+        student_data
+        .guardian_phone
+    )
+
+    student.parent_name = (
+        student_data
+        .parent_name
+    )
+
+    student.parent_email = (
+        student_data
+        .parent_email
+    )
+
+    student.emergency_contact = (
+        student_data
+        .emergency_contact
+    )
+
+    student.address = (
+        student_data.address
+    )
+
+    student.room_preference = (
+        student_data
+        .room_preference
+    )
+
+    # Prevent non-admitted students from keeping active rooms.
+    # The Student row is already locked by this endpoint.
+    requested_status = (
+        str(student_data.admission_status or "").strip()
+    )
+
+    if requested_status != "Admitted":
+        active_allocation = (
+            db.query(RoomAllocation.id)
+            .filter(
+                RoomAllocation.student_id == student.id,
+                RoomAllocation.status == "Active",
+            )
+            .first()
+        )
+
+        if active_allocation is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Student has an active room allocation. "
+                    "Admission status must remain Admitted. "
+                    "Remove the allocation before changing "
+                    "the admission status."
+                ),
+            )
+
+    student.admission_status = requested_status
+
+    student.admission_date = (
+        student_data
+        .admission_date
+    )
+
+    try:
+        db.commit()
+        db.refresh(student)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Could not update student"
+            ),
         )
 
     return student
 
 
 # DELETE STUDENT
-@router.delete("/{student_id}")
+@router.delete(
+    "/{student_id}"
+)
 def delete_student(
     student_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin"))
+
+    db: Session = Depends(
+        get_db
+    ),
+
+    current_user: User = Depends(
+        require_roles("Admin")
+    ),
 ):
-    student = db.query(Student).filter(
-        Student.id == student_id
-    ).first()
+
+    student = (
+        db.query(Student)
+        .filter(
+            Student.id
+            == student_id
+        )
+        .first()
+    )
 
     if not student:
         raise HTTPException(
             status_code=404,
-            detail="Student not found"
+            detail="Student not found",
         )
 
     db.delete(student)
     db.commit()
 
     return {
-        "message": "Student deleted successfully"
+        "message":
+            "Student deleted successfully"
     }

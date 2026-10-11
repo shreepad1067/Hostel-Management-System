@@ -1,0 +1,314 @@
+/* =====================================================
+   FEATURE 12 — DASHBOARD CHART COMPONENTS
+===================================================== */
+
+.dashboard-donut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.dashboard-donut-svg-wrap {
+  position: relative;
+
+  width: 154px;
+  height: 154px;
+}
+
+
+.dashboard-donut-svg {
+  width: 100%;
+  height: 100%;
+
+  transform: rotate(-90deg);
+}
+
+
+.dashboard-donut-track,
+.dashboard-donut-progress {
+  fill: none;
+
+  stroke-width: 10;
+}
+
+
+.dashboard-donut-track {
+  stroke: #eef2f7;
+}
+
+
+.dashboard-donut-progress {
+  stroke: currentColor;
+
+  color: #6366f1;
+
+  stroke-linecap: round;
+
+  transition:
+    stroke-dashoffset 0.5s ease;
+}
+
+
+.dashboard-donut-center {
+  position: absolute;
+
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.dashboard-donut-center strong {
+  color: #0f172a;
+
+  font-size: 26px;
+  font-weight: 800;
+}
+
+
+.dashboard-donut-center span {
+  margin-top: 2px;
+
+  color: #94a3b8;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+}
+
+
+.dashboard-donut-caption {
+  margin: 6px 0 0;
+
+  color: #64748b;
+
+  font-size: 8px;
+
+  text-align: center;
+}
+
+
+/* =====================================================
+   METRIC BAR
+===================================================== */
+
+.dashboard-metric-bar {
+  margin-bottom: 13px;
+}
+
+
+.dashboard-metric-bar:last-child {
+  margin-bottom: 0;
+}
+
+
+.dashboard-metric-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 6px;
+}
+
+
+.dashboard-metric-bar-header span {
+  color: #64748b;
+
+  font-size: 8px;
+  font-weight: 600;
+}
+
+
+.dashboard-metric-bar-header strong {
+  color: #334155;
+
+  font-size: 9px;
+}
+
+
+.dashboard-metric-bar-track {
+  height: 6px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #eef2f7;
+}
+
+
+.dashboard-metric-bar-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: #6366f1;
+
+  transition:
+    width 0.5s ease;
+}
+
+
+/* =====================================================
+   MINI BAR CHART
+===================================================== */
+
+.dashboard-mini-bars {
+  height: 190px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+
+  gap: 12px;
+
+  padding-top: 12px;
+}
+
+
+.dashboard-mini-bar-item {
+  height: 100%;
+
+  flex: 1;
+
+  min-width: 32px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.dashboard-mini-bar-number {
+  margin-bottom: 5px;
+
+  color: #475569;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+.dashboard-mini-bar-column {
+  width: 28px;
+
+  flex: 1;
+
+  display: flex;
+  align-items: flex-end;
+
+  overflow: hidden;
+
+  border-radius: 7px 7px 3px 3px;
+
+  background: #f8fafc;
+}
+
+
+.dashboard-mini-bar-fill {
+  width: 100%;
+
+  border-radius: 7px 7px 3px 3px;
+
+  background: #6366f1;
+
+  transition:
+    height 0.5s ease;
+}
+
+
+.dashboard-mini-bar-item > span {
+  margin-top: 7px;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+  font-weight: 600;
+
+  text-align: center;
+}
+
+
+/* =====================================================
+   PROGRESS
+===================================================== */
+
+.dashboard-progress-metric {
+  padding: 13px 0;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+
+.dashboard-progress-metric:last-child {
+  border-bottom: none;
+}
+
+
+.dashboard-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom: 8px;
+}
+
+
+.dashboard-progress-heading span {
+  display: block;
+
+  color: #334155;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.dashboard-progress-heading small {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #94a3b8;
+
+  font-size: 7px;
+}
+
+
+.dashboard-progress-heading strong {
+  color: #4f46e5;
+
+  font-size: 10px;
+}
+
+
+.dashboard-progress-track {
+  height: 7px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #eef2f7;
+}
+
+
+.dashboard-progress-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: #6366f1;
+
+  transition:
+    width 0.5s ease;
+}

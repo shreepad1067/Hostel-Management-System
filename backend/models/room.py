@@ -52,7 +52,7 @@ class Room(Base):
         nullable=True
     )
 
-    monthly_fee: Mapped[Decimal | None] = mapped_column(
+    yearly_fee: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True
     )

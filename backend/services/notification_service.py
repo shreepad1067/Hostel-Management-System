@@ -117,6 +117,84 @@ def send_email(
         )
 
 
+def send_email_with_attachment(
+    recipient_email: str,
+    subject: str,
+    body: str,
+    attachment_bytes: bytes,
+    attachment_filename: str,
+    attachment_content_type: str = "application/pdf",
+) -> None:
+    """
+    Send an email with a binary attachment.
+
+    Used for automatically emailing paid
+    HostelHub fee receipts to students.
+    """
+
+    if not SMTP_EMAIL:
+        raise RuntimeError(
+            "SMTP_EMAIL is not configured"
+        )
+
+    if not SMTP_APP_PASSWORD:
+        raise RuntimeError(
+            "SMTP_APP_PASSWORD is not configured"
+        )
+
+    if not attachment_bytes:
+        raise ValueError(
+            "Attachment is empty"
+        )
+
+    content_type = (
+        attachment_content_type
+        or "application/octet-stream"
+    )
+
+    if "/" in content_type:
+        maintype, subtype = (
+            content_type.split("/", 1)
+        )
+    else:
+        maintype = "application"
+        subtype = "octet-stream"
+
+    message = EmailMessage()
+
+    message["Subject"] = subject
+    message["From"] = SMTP_EMAIL
+    message["To"] = recipient_email
+
+    message.set_content(body)
+
+    message.add_attachment(
+        attachment_bytes,
+        maintype=maintype,
+        subtype=subtype,
+        filename=attachment_filename,
+    )
+
+    with smtplib.SMTP(
+        SMTP_HOST,
+        SMTP_PORT,
+        timeout=20,
+    ) as server:
+
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+
+        server.login(
+            SMTP_EMAIL,
+            SMTP_APP_PASSWORD,
+        )
+
+        server.send_message(
+            message
+        )
+
+
 def send_email_otp(
     recipient_email: str,
     otp: str,

@@ -47,7 +47,7 @@ class CounsellingTests(unittest.TestCase):
         self.db = Session(self.engine)
         self.warden = User(username="warden", email="warden@example.test", role="Warden", hashed_password="unused")
         self.student = Student(name="Student", student_code="HMS202600001", email="student@example.test", phone="1000000000", course="Engineering", year=1, admission_status="Admitted")
-        self.room = Room(room_number="A101", capacity=2, occupied=0, floor=1, status="Available", specifications="Desk and Wi-Fi", monthly_fee=2500, block="A", bathroom_type="Attached", room_type="Non-AC")
+        self.room = Room(room_number="A101", capacity=2, occupied=0, floor=1, status="Available", specifications="Desk and Wi-Fi", yearly_fee=2500, block="A", bathroom_type="Attached", room_type="Non-AC")
         self.db.add_all([self.warden, self.student, self.room])
         self.db.commit()
 
@@ -124,7 +124,7 @@ class CounsellingTests(unittest.TestCase):
         payload = RoomUpdate(room_number="A101", capacity=2, occupied=0, floor=2, status="Available")
         result = update_room(self.room.id, payload, self.db, self.warden)
         self.assertEqual(result.specifications, "Desk and Wi-Fi")
-        self.assertEqual(result.monthly_fee, 2500)
+        self.assertEqual(result.yearly_fee, 2500)
         self.assertEqual(result.block, "A")
 
     def test_explicit_specification_clear(self):
@@ -143,7 +143,7 @@ class CounsellingTests(unittest.TestCase):
         with self.assertRaises(HTTPException): delete_room(self.room.id, self.db, self.warden)
 
     def test_validation(self):
-        for changes in ({"capacity":5}, {"capacity":0}, {"room_number":" "}, {"monthly_fee":-1}, {"monthly_fee":"1.234"}, {"status":"Invalid"}):
+        for changes in ({"capacity":5}, {"capacity":0}, {"room_number":" "}, {"yearly_fee":-1}, {"yearly_fee":"1.234"}, {"status":"Invalid"}):
             with self.assertRaises(ValidationError):
                 RoomCreate(**({"room_number":"Test", "capacity":2, "floor":0} | changes))
         with self.assertRaises(ValidationError):

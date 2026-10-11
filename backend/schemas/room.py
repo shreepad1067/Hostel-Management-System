@@ -13,7 +13,7 @@ class RoomCreate(BaseModel):
     floor: int = Field(ge=0)
     bathroom_type: Optional[str] = Field(default=None, max_length=50)
     room_type: Optional[str] = Field(default=None, max_length=50)
-    monthly_fee: Optional[Decimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
+    yearly_fee: Optional[Decimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     specifications: Optional[str] = Field(default=None, max_length=500)
     status: Literal["Available", "Occupied", "Maintenance"] = "Available"
 
@@ -27,7 +27,7 @@ class RoomUpdate(BaseModel):
     floor: int = Field(ge=0)
     bathroom_type: Optional[str] = Field(default=None, max_length=50)
     room_type: Optional[str] = Field(default=None, max_length=50)
-    monthly_fee: Optional[Decimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
+    yearly_fee: Optional[Decimal] = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     specifications: Optional[str] = Field(default=None, max_length=500)
     status: Literal["Available", "Occupied", "Maintenance"]
 
@@ -41,7 +41,7 @@ class RoomResponse(BaseModel):
     floor: int
     bathroom_type: Optional[str] = None
     room_type: Optional[str] = None
-    monthly_fee: Optional[Decimal] = None
+    yearly_fee: Optional[Decimal] = None
     specifications: Optional[str] = None
     status: str
 
