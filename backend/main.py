@@ -1,3 +1,4 @@
+from services.parent_alert_worker import parent_alert_lifespan
 from fastapi import FastAPI
 
 from fastapi.middleware.cors import (
@@ -45,6 +46,7 @@ from routers import (
 
 
 app = FastAPI(
+    lifespan=parent_alert_lifespan,
     title=
         "Hostel Management System API"
 )

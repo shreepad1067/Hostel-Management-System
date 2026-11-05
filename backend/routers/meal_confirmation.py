@@ -1,3 +1,5 @@
+from services.meal_alert_lock import coordinate_meal_operation
+from services.meal_alert_corrections import cancel_missed_meal_alerts
 from datetime import (
     date,
     datetime,
@@ -184,6 +186,7 @@ def notify_parent(
     "/qr/generate",
     response_model=MealQRResponse,
 )
+@coordinate_meal_operation
 def generate_meal_qr(
     payload: MealQRGenerateRequest,
     db: Session = Depends(get_db),
@@ -260,6 +263,7 @@ def generate_meal_qr(
         algorithm=ALGORITHM,
     )
 
+    cancel_missed_meal_alerts(db, today, meal_type)
     db.commit()
     db.refresh(session)
 
@@ -277,6 +281,7 @@ def generate_meal_qr(
     response_model=MealConfirmationResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@coordinate_meal_operation
 def scan_meal_qr(
     payload: MealQRScanRequest,
     db: Session = Depends(get_db),
@@ -413,6 +418,10 @@ def scan_meal_qr(
     db.add(confirmation)
 
     try:
+        db.flush()
+        cancel_missed_meal_alerts(
+            db, today, session.meal_type, student_id=student.id
+        )
         db.commit()
 
     except IntegrityError:

@@ -1,3 +1,4 @@
+from services.attendance_alert_service import sync_attendance_alert
 from datetime import date
 from zoneinfo import ZoneInfo
 from datetime import datetime
@@ -325,6 +326,8 @@ def save_bulk_attendance(
 
             db.add(record)
 
+        sync_attendance_alert(db, record)
+
         updated += 1
 
     db.commit()
@@ -397,6 +400,7 @@ def create_attendance(
     )
 
     db.add(record)
+    sync_attendance_alert(db, record)
     db.commit()
     db.refresh(record)
 
@@ -547,6 +551,7 @@ def update_attendance(
         payload.remarks
     )
 
+    sync_attendance_alert(db, record)
     db.commit()
     db.refresh(record)
 
@@ -580,6 +585,7 @@ def delete_attendance(
             ),
         )
 
+    sync_attendance_alert(db, record, deleted=True)
     db.delete(record)
     db.commit()
 
