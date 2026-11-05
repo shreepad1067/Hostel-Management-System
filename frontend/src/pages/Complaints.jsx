@@ -29,7 +29,7 @@ function Complaints() {
 
   const getUserRole = () => {
     try {
-      const token = localStorage.getItem("access_token");
+      const token = sessionStorage.getItem("access_token");
 
       if (!token) {
         return "Guest";

@@ -488,7 +488,12 @@
    ========================================================= */
 
 .food-day-title {
+  width: 100%;
   display: flex;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
 
   align-items: center;
   justify-content: space-between;
@@ -505,6 +510,16 @@
       #f8fafc,
       #f5f7ff
     );
+}
+
+.food-day-title:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: -3px;
+}
+
+.food-day-chevron {
+  margin-left: 8px;
+  font-size: 15px;
 }
 
 .food-day-title h3 {
@@ -842,4 +857,435 @@
 
     padding-right: 14px;
   }
+}
+
+
+/* Food menu visual refresh */
+.food-overview-card {
+  padding: clamp(20px, 2.2vw, 32px);
+  border-color: #e3e8f5;
+  background: linear-gradient(145deg, #ffffff 0%, #fbfcff 100%);
+}
+
+.food-overview-card > h2,
+.food-section-header h2 {
+  color: #172554;
+  letter-spacing: -0.025em;
+}
+
+.food-overview-card > h2 {
+  margin: 0 0 22px;
+  font-size: 21px;
+}
+
+.food-today-grid {
+  gap: 15px;
+}
+
+.food-today-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  align-items: start;
+  column-gap: 14px;
+  min-height: 145px;
+  padding: 19px;
+  border-left: 4px solid #c7d2fe;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff, #f9faff);
+}
+
+.food-today-card:nth-child(1) {
+  border-left-color: #f4b740;
+}
+
+.food-today-card:nth-child(2) {
+  border-left-color: #38a878;
+}
+
+.food-today-card:nth-child(3) {
+  border-left-color: #f08b54;
+}
+
+.food-today-card:nth-child(4) {
+  border-left-color: #7375e8;
+}
+
+.food-today-card::after {
+  width: 110px;
+  height: 110px;
+  right: -56px;
+  top: -62px;
+  background: rgba(99, 102, 241, 0.07);
+}
+
+.food-meal-icon {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.food-today-card h3 {
+  grid-column: 2;
+  margin: 1px 0 5px;
+  font-size: 15px;
+}
+
+.food-items {
+  grid-column: 2;
+  min-height: 0;
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.food-today-card small {
+  grid-column: 2;
+  align-self: end;
+  padding-top: 4px;
+  color: #7b8499;
+  font-size: 11px;
+}
+
+.food-week-grid {
+  gap: 14px;
+}
+
+.food-day-card {
+  border-color: #e0e6f2;
+  border-radius: 15px;
+  background: #fff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.food-day-card:hover {
+  transform: none;
+  border-color: #c7d2fe;
+  box-shadow: 0 8px 22px rgba(54, 65, 120, 0.08);
+}
+
+.food-day-title {
+  min-height: 58px;
+  padding: 14px 18px;
+  color: #1e293b;
+  transition: background 0.18s ease;
+}
+
+.food-day-title:hover {
+  background: linear-gradient(135deg, #eef2ff, #f5f7ff);
+}
+
+.food-day-chevron {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e9edff;
+  color: #4f46e5;
+  font-weight: 800;
+}
+
+.food-day-meal {
+  padding: 16px 18px;
+}
+
+@media (max-width: 600px) {
+  .food-overview-card {
+    padding: 19px;
+  }
+
+  .food-today-card {
+    min-height: 125px;
+  }
+}
+
+
+/* Keep minimized days compact while one day is open. */
+.food-week-grid {
+  align-items: start;
+}
+
+.food-day-card {
+  align-self: start;
+}
+
+.food-day-card.expanded {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+
+/* Compact day cards with a focused menu dialog */
+.food-week-grid {
+  align-items: stretch;
+}
+
+.food-day-picker {
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e1e7f2;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff, #f7f8ff);
+  color: #172554;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(31, 41, 83, 0.04);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.food-day-picker:hover {
+  transform: translateY(-2px);
+  border-color: #aab4ff;
+  box-shadow: 0 10px 24px rgba(79, 70, 229, .11);
+}
+
+.food-day-picker:focus-visible,
+.food-menu-dialog-close:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 3px;
+}
+
+.food-day-picker-name {
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.food-day-picker-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #77819a;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.food-day-picker-arrow {
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eceeff;
+  color: #5147d9;
+  font-size: 14px;
+}
+
+.food-menu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(15, 23, 42, .48);
+  backdrop-filter: blur(5px);
+  animation: foodBackdropIn .16s ease-out;
+}
+
+.food-menu-dialog {
+  width: min(620px, 100%);
+  max-height: min(78vh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .75);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .28);
+  animation: foodDialogIn .2s ease-out;
+}
+
+.food-menu-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid #e9edf5;
+  background: linear-gradient(135deg, #f4f5ff, #fff 75%);
+}
+
+.food-menu-dialog-eyebrow {
+  color: #5c56d9;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+
+.food-menu-dialog-header h2 {
+  margin: 7px 0 3px;
+  color: #172554;
+  font-size: 25px;
+  letter-spacing: -.03em;
+}
+
+.food-menu-dialog-header p {
+  margin: 0;
+  color: #7b8499;
+  font-size: 12px;
+}
+
+.food-menu-dialog-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e2e7f0;
+  border-radius: 50%;
+  background: #fff;
+  color: #64748b;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.food-menu-dialog-list {
+  overflow-y: auto;
+  padding: 10px 20px 18px;
+}
+
+.food-menu-dialog-meal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 6px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.food-menu-dialog-meal:last-child {
+  border-bottom: 0;
+}
+
+.food-menu-dialog-meal.inactive {
+  opacity: .56;
+}
+
+.food-menu-dialog-meal-type {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: #26345d;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.food-menu-dialog-meal p {
+  margin: 0 0 7px;
+  color: #526078;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.food-menu-dialog-meal small {
+  color: #8791a5;
+  font-size: 11px;
+}
+
+.food-menu-dialog-empty {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 38px 16px;
+  color: #64748b;
+  text-align: center;
+}
+
+.food-menu-dialog-empty > span {
+  color: #7169e8;
+  font-size: 27px;
+}
+
+.food-menu-dialog-empty strong {
+  color: #273452;
+  font-size: 15px;
+}
+
+.food-menu-dialog-empty p {
+  margin: 0;
+  font-size: 12px;
+}
+
+@keyframes foodBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes foodDialogIn {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .food-day-picker {
+    min-height: 66px;
+    padding: 14px;
+  }
+
+  .food-menu-modal-backdrop {
+    padding: 12px;
+  }
+
+  .food-menu-dialog {
+    max-height: 84vh;
+    border-radius: 18px;
+  }
+
+  .food-menu-dialog-header {
+    padding: 20px;
+  }
+
+  .food-menu-dialog-list {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  .food-menu-dialog-meal {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* Center the menu dialog over the page content and tighten its width. */
+.food-menu-modal-backdrop {
+  box-sizing: border-box;
+  padding-left: 292px;
+}
+
+.food-menu-dialog {
+  width: min(500px, 100%);
+}
+
+@media (max-width: 900px) {
+  .food-menu-modal-backdrop {
+    padding: 12px;
+  }
+}
+
+/* Keep the weekly menu dialog close to its content width. */
+.food-menu-dialog {
+  width: min(420px, 100%);
+}
+
+.food-menu-dialog-header {
+  padding: 20px 22px 16px;
+}
+
+.food-menu-dialog-list {
+  padding: 6px 18px 12px;
+}
+
+.food-menu-dialog-meal {
+  padding: 12px 4px;
 }

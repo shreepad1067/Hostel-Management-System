@@ -52,7 +52,7 @@ const EMPTY_FORM = {
 function getRole() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 
@@ -77,6 +77,20 @@ function FoodMenu() {
 
   const [weekly, setWeekly] =
     useState([]);
+
+  const [expandedDay, setExpandedDay] =
+    useState(null);
+
+  useEffect(() => {
+    if (!expandedDay) return;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setExpandedDay(null);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [expandedDay]);
 
   const [today, setToday] =
     useState([]);
@@ -319,7 +333,7 @@ function FoodMenu() {
         )}
 
 
-        <section className="overview-card">
+        <section className="overview-card food-overview-card">
           <h2>
             Today's Menu
           </h2>
@@ -337,11 +351,20 @@ function FoodMenu() {
                     key={item.id}
                     className="food-today-card"
                   >
+                    <span className="food-meal-icon" aria-hidden="true">
+                      {item.meal_type === "Breakfast"
+                        ? "☀"
+                        : item.meal_type === "Lunch"
+                          ? "◒"
+                          : item.meal_type === "Snacks"
+                            ? "✦"
+                            : "☾"}
+                    </span>
                     <h3>
                       {item.meal_type}
                     </h3>
 
-                    <p>
+                    <p className="food-items">
                       {item.menu_items}
                     </p>
 
@@ -358,7 +381,7 @@ function FoodMenu() {
 
 
         <section
-          className="overview-card"
+          className="overview-card food-overview-card"
           style={{
             marginTop:
               "22px",
@@ -541,87 +564,123 @@ function FoodMenu() {
 
 
           <div className="food-week-grid">
-            {DAYS.map(
-              (day) => {
-                const records =
-                  weekly.filter(
-                    (record) =>
-                      record.day_of_week
-                      === day
-                  );
+            {DAYS.map((day) => {
+              const mealCount = weekly.filter(
+                (record) => record.day_of_week === day
+              ).length;
 
-                return (
-                  <div
-                    key={day}
-                    className="food-day-card"
-                  >
-                    <div className="food-day-title">
-                      <h3>
-                        {day}
-                      </h3>
-
-                      <span>
-                        {records.length} meals
-                      </span>
-                    </div>
-
-                    {records.map(
-                      (record) => (
-                        <div
-                          key={record.id}
-                          className={
-                            record.is_active
-                              ? "food-day-meal"
-                              : "food-day-meal inactive"
-                          }
-                        >
-                          <strong>
-                            {record.meal_type}
-                          </strong>
-
-                          <p>
-                            {record.menu_items}
-                          </p>
-
-                          <small>
-                            {record.serving_time
-                              || "Time not specified"}
-                          </small>
-
-                          {canManage && (
-                            <div className="food-actions">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  editForm(
-                                    record
-                                  )
-                                }
-                              >
-                                Edit
-                              </button>
-
-                              <button
-                                type="button"
-                                className="delete"
-                                onClick={() =>
-                                  remove(
-                                    record
-                                  )
-                                }
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    )}
-                  </div>
-                );
-              }
-            )}
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className="food-day-picker"
+                  aria-haspopup="dialog"
+                  aria-expanded={expandedDay === day}
+                  onClick={() => setExpandedDay(day)}
+                >
+                  <span className="food-day-picker-name">{day}</span>
+                  <span className="food-day-picker-meta">
+                    {mealCount} {mealCount === 1 ? "meal" : "meals"}
+                    <span className="food-day-picker-arrow" aria-hidden="true">
+                      ↗
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
+
+          {expandedDay && (
+            <div
+              className="food-menu-modal-backdrop"
+              onClick={() => setExpandedDay(null)}
+            >
+              <section
+                id="food-day-menu-dialog"
+                className="food-menu-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="food-menu-dialog-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <header className="food-menu-dialog-header">
+                  <div>
+                    <span className="food-menu-dialog-eyebrow">
+                      WEEKLY MENU
+                    </span>
+                    <h2 id="food-menu-dialog-title">{expandedDay}</h2>
+                    <p>
+                      {weekly.filter(
+                        (record) => record.day_of_week === expandedDay
+                      ).length} meals planned
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="food-menu-dialog-close"
+                    aria-label="Close menu"
+                    onClick={() => setExpandedDay(null)}
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div className="food-menu-dialog-list">
+                  {weekly
+                    .filter((record) => record.day_of_week === expandedDay)
+                    .map((record) => (
+                      <article
+                        key={record.id}
+                        className={`food-menu-dialog-meal ${
+                          record.is_active ? "" : "inactive"
+                        }`}
+                      >
+                        <div className="food-menu-dialog-meal-main">
+                          <span className="food-menu-dialog-meal-type">
+                            {record.meal_type}
+                          </span>
+                          <p>{record.menu_items}</p>
+                          <small>
+                            ◷ {record.serving_time || "Time not specified"}
+                          </small>
+                        </div>
+
+                        {canManage && (
+                          <div className="food-actions">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                editForm(record);
+                                setExpandedDay(null);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="delete"
+                              onClick={() => remove(record)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+
+                  {weekly.filter(
+                    (record) => record.day_of_week === expandedDay
+                  ).length === 0 && (
+                    <div className="food-menu-dialog-empty">
+                      <span aria-hidden="true">✦</span>
+                      <strong>No meals planned yet</strong>
+                      <p>This day’s menu hasn’t been added.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
         </section>
       </main>
     </div>

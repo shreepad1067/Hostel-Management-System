@@ -14,7 +14,7 @@ import api from "../services/api";
 function roleFromToken() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 

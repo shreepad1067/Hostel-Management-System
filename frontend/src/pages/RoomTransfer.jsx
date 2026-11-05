@@ -16,7 +16,7 @@ import api from "../services/api";
 function decodeRole() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 

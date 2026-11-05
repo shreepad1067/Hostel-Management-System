@@ -18,7 +18,7 @@ import "./Topbar.css";
 function decodeToken() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 

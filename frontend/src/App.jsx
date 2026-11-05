@@ -54,7 +54,7 @@ import AuditLogs from "./pages/AuditLogs";
 function getUserRole() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 
@@ -98,7 +98,7 @@ function ProtectedRoute({
   allowedRoles,
 }) {
   const token =
-    localStorage.getItem(
+    sessionStorage.getItem(
       "access_token"
     );
 

@@ -13,7 +13,7 @@ import "./Sidebar.css";
 function getRole() {
   try {
     const token =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "access_token"
       );
 
@@ -450,7 +450,7 @@ function Sidebar() {
   const handleLogout =
     () => {
 
-      localStorage.removeItem(
+      sessionStorage.removeItem(
         "access_token"
       );
 

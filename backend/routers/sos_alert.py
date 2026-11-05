@@ -34,6 +34,8 @@ from services.notification_service import (
     send_parent_sos_notification,
 )
 
+from services.in_app_notification_service import create_role_notifications
+
 
 router = APIRouter(
     prefix="/sos",
@@ -288,6 +290,19 @@ def create_sos_alert(
     )
 
     db.add(log)
+
+    create_role_notifications(
+        db=db,
+        roles=["Admin", "Warden"],
+        title="New SOS emergency alert",
+        message=(
+            f"{student.name} reported {category} at {location}. "
+            f"{description}"
+        ),
+        category="SOS",
+        level="Warning",
+        link="/sos",
+    )
 
     db.commit()
     db.refresh(alert)
