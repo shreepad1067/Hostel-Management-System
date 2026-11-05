@@ -1,11 +1,17 @@
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import (
     APIRouter,
     Depends,
+    File,
+    Form,
     HTTPException,
+    UploadFile,
 )
+from fastapi.responses import FileResponse
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -81,101 +87,127 @@ def get_student_for_user(
     response_model=FoodFeedbackResponse,
     status_code=201,
 )
-def submit_feedback(
-    payload: FoodFeedbackCreate,
+async def submit_feedback(
+    meal_date: str = Form(...),
+    meal_type: str = Form(...),
+    taste_rating: int = Form(...),
+    quality_rating: int = Form(...),
+    quantity_rating: int = Form(...),
+    hygiene_rating: int = Form(...),
+    comment: str = Form(""),
+    photo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_roles("Student")
-    ),
+    current_user: User = Depends(require_roles("Student")),
 ):
-    student = get_student_for_user(
-        db,
-        current_user,
-    )
-
-    meal_type = (
-        payload.meal_type
-        .strip()
-        .title()
-    )
+    student = get_student_for_user(db, current_user)
+    meal_type = meal_type.strip().title()
 
     if meal_type not in ALLOWED_MEALS:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid meal type.",
-        )
+        raise HTTPException(status_code=400, detail="Invalid meal type.")
 
-    today = datetime.now(
-        INDIA_TIMEZONE
-    ).date()
+    try:
+        parsed_date = datetime.strptime(meal_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid meal date.")
 
-    if payload.meal_date > today:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Feedback cannot be submitted "
-                "for a future meal."
-            ),
-        )
+    if parsed_date > datetime.now(INDIA_TIMEZONE).date():
+        raise HTTPException(status_code=400, detail="Future meal date is not allowed.")
 
-    collected = (
-        db.query(MealConfirmation)
-        .filter(
-            MealConfirmation.student_id
-            == student.id,
+    if any(rating < 1 or rating > 5 for rating in (
+        taste_rating, quality_rating, quantity_rating, hygiene_rating
+    )):
+        raise HTTPException(status_code=400, detail="Ratings must be from 1 to 5.")
 
-            MealConfirmation.meal_date
-            == payload.meal_date,
+    if len(comment) > 1000:
+        raise HTTPException(status_code=400, detail="Comment is too long.")
 
-            MealConfirmation.meal_type
-            == meal_type,
-        )
-        .first()
-    )
-
+    collected = db.query(MealConfirmation).filter(
+        MealConfirmation.student_id == student.id,
+        MealConfirmation.meal_date == parsed_date,
+        MealConfirmation.meal_type == meal_type,
+    ).first()
     if collected is None:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "You can submit feedback only "
-                "for a meal you collected."
-            ),
+            detail="You can submit feedback only for a meal you collected.",
         )
+
+    image_filename = None
+    image_path = None
+    if photo is not None and photo.filename:
+        allowed = {
+            "image/jpeg": (".jpg", lambda b: b.startswith(b"\\xff\\xd8\\xff")),
+            "image/png": (".png", lambda b: b.startswith(b"\\x89PNG\\r\\n\\x1a\\n")),
+            "image/webp": (".webp", lambda b: b.startswith(b"RIFF") and b[8:12] == b"WEBP"),
+        }
+        image_type = allowed.get(photo.content_type or "")
+        if image_type is None:
+            raise HTTPException(status_code=400, detail="Use a JPEG, PNG, or WebP photo.")
+
+        image_bytes = await photo.read(5 * 1024 * 1024 + 1)
+        if len(image_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller.")
+        if not image_type[1](image_bytes):
+            raise HTTPException(status_code=400, detail="The uploaded file is not a valid image.")
+
+        upload_dir = Path(__file__).resolve().parents[1] / "uploads" / "food_feedback"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        image_filename = uuid4().hex + image_type[0]
+        image_path = upload_dir / image_filename
+        image_path.write_bytes(image_bytes)
 
     feedback = FoodFeedback(
         student_id=student.id,
-        meal_date=payload.meal_date,
+        meal_date=parsed_date,
         meal_type=meal_type,
-        taste_rating=payload.taste_rating,
-        quality_rating=payload.quality_rating,
-        quantity_rating=payload.quantity_rating,
-        hygiene_rating=payload.hygiene_rating,
-        comment=(
-            payload.comment.strip()
-            if payload.comment
-            else None
-        ),
+        taste_rating=taste_rating,
+        quality_rating=quality_rating,
+        quantity_rating=quantity_rating,
+        hygiene_rating=hygiene_rating,
+        comment=comment.strip() or None,
+        image_filename=image_filename,
     )
-
     db.add(feedback)
 
     try:
         db.commit()
-
     except IntegrityError:
         db.rollback()
-
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "You already submitted feedback "
-                "for this meal."
-            ),
-        )
+        if image_path:
+            image_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=409, detail="You already submitted feedback for this meal.")
 
     db.refresh(feedback)
-
     return feedback
+
+
+@router.get("/{feedback_id}/photo")
+def get_feedback_photo(
+    feedback_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Student", "Admin", "Warden")),
+):
+    feedback = db.query(FoodFeedback).filter(
+        FoodFeedback.id == feedback_id
+    ).first()
+    if feedback is None or not feedback.image_filename:
+        raise HTTPException(status_code=404, detail="Feedback photo not found.")
+
+    if current_user.role == "Student":
+        student = get_student_for_user(db, current_user)
+        if feedback.student_id != student.id:
+            raise HTTPException(status_code=403, detail="Not allowed to view this photo.")
+
+    photo_path = (
+        Path(__file__).resolve().parents[1]
+        / "uploads"
+        / "food_feedback"
+        / feedback.image_filename
+    )
+    if not photo_path.is_file():
+        raise HTTPException(status_code=404, detail="Photo file is missing.")
+
+    return FileResponse(photo_path)
 
 
 @router.get(
@@ -271,6 +303,9 @@ def feedback_records(
 
             "comment":
                 feedback.comment,
+
+            "photo_url":
+                feedback.photo_url,
 
             "created_at":
                 feedback.created_at,

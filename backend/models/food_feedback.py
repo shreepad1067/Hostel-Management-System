@@ -88,6 +88,16 @@ class FoodFeedback(Base):
         nullable=True,
     )
 
+    image_filename: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+
+    @property
+    def photo_url(self) -> str | None:
+        if not self.image_filename:
+            return None
+        return f"/food-feedback/{self.id}/photo"
+
     created_at: Mapped[
         datetime
     ] = mapped_column(

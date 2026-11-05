@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  useRef,
 } from "react";
 
 import Sidebar from "../components/Sidebar";
@@ -88,6 +89,43 @@ function FoodFeedback() {
     });
 
 
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoUrls, setPhotoUrls] = useState({});
+  const photoInput = useRef(null);
+  const cameraInput = useRef(null);
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Photo must be 5 MB or smaller.");
+      return;
+    }
+
+    setError("");
+    setPhoto(file);
+  };
+
+
+  useEffect(() => {
+    if (!photo) {
+      setPhotoPreview("");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(photo);
+    setPhotoPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photo]);
+
+
   const load =
     useCallback(
       async () => {
@@ -145,6 +183,39 @@ function FoodFeedback() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const createdUrls = [];
+
+    const loadPhotos = async () => {
+      const next = {};
+      for (const record of records) {
+        if (!record.photo_url) continue;
+        try {
+          const response = await api.get(record.photo_url, {
+            responseType: "blob",
+          });
+          const url = URL.createObjectURL(response.data);
+          if (cancelled) {
+            URL.revokeObjectURL(url);
+          } else {
+            createdUrls.push(url);
+            next[record.id] = url;
+          }
+        } catch {
+          // Keep the feedback visible if a photo cannot be loaded.
+        }
+      }
+      if (!cancelled) setPhotoUrls(next);
+    };
+
+    loadPhotos();
+    return () => {
+      cancelled = true;
+      createdUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [records]);
+
 
   const submit =
     async (event) => {
@@ -154,53 +225,23 @@ function FoodFeedback() {
         setError("");
         setSuccess("");
 
-        await api.post(
-          "/food-feedback/",
-          {
-            ...form,
+        const data = new FormData();
+        Object.entries(form).forEach(([key, value]) => {
+          data.append(key, String(value));
+        });
+        if (photo) data.append("photo", photo);
 
-            taste_rating:
-              Number(
-                form.taste_rating
-              ),
-
-            quality_rating:
-              Number(
-                form.quality_rating
-              ),
-
-            quantity_rating:
-              Number(
-                form.quantity_rating
-              ),
-
-            hygiene_rating:
-              Number(
-                form.hygiene_rating
-              ),
-          }
-        );
-
-        setSuccess(
-          "Food feedback submitted."
-        );
-
-        setForm({
-          ...form,
-
-          comment:
-            "",
+        await api.post("/food-feedback/", data, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
 
+        setSuccess("Food feedback submitted.");
+        setForm({ ...form, comment: "" });
+        setPhoto(null);
         await load();
-
       } catch (error) {
         setError(
-          error.response
-            ?.data
-            ?.detail
-          ||
-          "Unable to submit feedback."
+          error.response?.data?.detail || "Unable to submit feedback."
         );
       }
     };
@@ -405,6 +446,41 @@ function FoodFeedback() {
                 />
               </label>
 
+              <div className="feedback-photo-field">
+                <span>Meal photo <small>(optional, up to 5 MB)</small></span>
+                <input
+                  ref={photoInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoChange}
+                  hidden
+                />
+                <input
+                  ref={cameraInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  onChange={handlePhotoChange}
+                  hidden
+                />
+                <div className="feedback-photo-actions">
+                  <button type="button" onClick={() => photoInput.current?.click()}>
+                    Attach photo
+                  </button>
+                  <button type="button" onClick={() => cameraInput.current?.click()}>
+                    Take photo
+                  </button>
+                  {photo && (
+                    <button type="button" onClick={() => setPhoto(null)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {photoPreview && (
+                  <img className="feedback-photo-preview" src={photoPreview} alt="Selected meal" />
+                )}
+              </div>
+
               <button
                 type="submit"
                 className="primary-button"
@@ -474,6 +550,7 @@ function FoodFeedback() {
                   <th>Quantity</th>
                   <th>Hygiene</th>
                   <th>Comment</th>
+                  <th>Photo</th>
                 </tr>
               </thead>
 
@@ -513,6 +590,16 @@ function FoodFeedback() {
 
                       <td>
                         {record.comment || "-"}
+                      </td>
+
+                      <td>
+                        {photoUrls[record.id] ? (
+                          <img
+                            className="feedback-table-photo"
+                            src={photoUrls[record.id]}
+                            alt="Meal submitted with feedback"
+                          />
+                        ) : "-"}
                       </td>
                     </tr>
                   )

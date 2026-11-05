@@ -53,6 +53,7 @@ class FoodFeedbackResponse(BaseModel):
     hygiene_rating: int
 
     comment: str | None
+    photo_url: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(

@@ -116,3 +116,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+.feedback-photo-field {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.feedback-photo-field small {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.feedback-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.feedback-photo-actions button {
+  padding: 10px 14px;
+  border: 1px solid #c7d2fe;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #4338ca;
+  font: inherit;
+  cursor: pointer;
+}
+
+.feedback-photo-preview {
+  width: 180px;
+  max-height: 180px;
+  object-fit: cover;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+}
+
+.feedback-table-photo {
+  width: 100px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 8px;
+}
